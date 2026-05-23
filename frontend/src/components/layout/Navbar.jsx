@@ -151,7 +151,7 @@ export default function Navbar() {
           fontWeight: 700, fontSize: '14px', color: '#0A0B0E',
           letterSpacing: '-0.5px',
         }}>
-          <img src="/vpa-logo.svg" />
+          <img src="/vpa-logo.png" />
         </div>
         <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
           Volleyball Performance Analysis
