@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  backend:
+    build: ./backend
+    container_name: vpa_backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    networks:
+      - vpa_network
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: vpa_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - vpa_network
+    restart: unless-stopped
+
+networks:
+  vpa_network:
+    driver: bridge

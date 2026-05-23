@@ -1,0 +1,127 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #C8E600;
+  --primary-dark: #9AB000;
+  --bg-base: #0A0B0E;
+  --bg-card: rgba(13, 15, 19, 0.72);
+  --bg-nav: rgba(10, 11, 14, 0.85);
+  --text-primary: #F0F2F5;
+  --text-secondary: #8A8FA8;
+  --text-muted: #555A6E;
+  --border: rgba(255, 255, 255, 0.07);
+  --success: #4CAF50;
+  --warning: #F5C400;
+  --danger: #F44336;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(200, 230, 0, 0.25); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(200, 230, 0, 0.45); }
+
+/* Card — glassmorphism over DarkVeil background */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* KPI card number counter animation */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.kpi-value {
+  animation: countUp 0.5s ease-out both;
+}
+
+/* Page fade in */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.page-enter {
+  animation: fadeIn 0.3s ease-out both;
+}
+
+/* Table */
+.vpa-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.vpa-table th {
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  white-space: nowrap;
+}
+.vpa-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+.vpa-table tr:last-child td { border-bottom: none; }
+.vpa-table tr:hover td { background: rgba(200,230,0,0.03); }
+
+/* Pill badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.badge-green  { background: rgba(76,175,80,0.15);  color: #81C784; }
+.badge-amber  { background: rgba(245,196,0,0.15);  color: #FFD54F; }
+.badge-red    { background: rgba(244,67,54,0.15);  color: #EF9A9A; }
+.badge-gray   { background: rgba(255,255,255,0.07); color: var(--text-secondary); }
+.badge-blue   { background: rgba(33,150,243,0.15); color: #64B5F6; }
+
+/* Toggle group */
+.toggle-group {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.toggle-btn {
+  padding: 6px 14px;
+  font-size: 12px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.toggle-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+.toggle-btn.active { background: var(--primary); color: #0A0B0E; font-weight: 500; }
+
+/* Glow accent on primary elements */
+.primary-glow {
+  box-shadow: 0 0 20px rgba(200, 230, 0, 0.15);
+}
