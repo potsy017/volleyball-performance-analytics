@@ -28,7 +28,7 @@ vpa/
 
 ---
 
-## Option A — Run locally (development)
+## Run locally 
 
 ### 1. Backend setup
 
@@ -72,7 +72,7 @@ App will be running at: http://localhost:5173
 
 ---
 
-## Option B — Run with Docker (recommended for demo/deployment)
+## Run with Docker
 
 ### 1. Set up environment
 
@@ -123,13 +123,3 @@ Run the following in Supabase SQL editor in order:
 4. `step4_create_dashboard_view.sql` (creates `vw_athlete_dashboard`)
 5. `step6_create_gymaware_views.sql` (creates `vw_gymaware_pb` and `vw_session_vs_pb`)
 6. `step7_add_calculated_columns.sql` (adds `player_load_per_minute` and `high_jump_count`)
-
----
-
-## Adding your logo
-
-Place your logo file at `frontend/public/vpa-logo.svg`
-It will appear as the browser tab favicon automatically.
-
-To use it in the navbar, update `frontend/src/components/layout/Navbar.jsx`
-and replace the `VA` text box with an `<img src="/vpa-logo.svg" />` tag.
