@@ -5,6 +5,7 @@ import { useDashboard } from '../context/DashboardContext'
 import KPICard from '../components/ui/KPICard'
 import PageHeader from '../components/ui/PageHeader'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import SelectDropdown from '../components/ui/SelectDropdown'
 
 const TEST_COLORS = {
   CMJ:   '#C8E600',
@@ -24,12 +25,12 @@ export default function Vald() {
 
   const { data: summary, isLoading: sumLoading } = useQuery({
     queryKey: ['vald-summary', selectedAthlete],
-    queryFn: () => valdApi.summary(selectedAthlete ? { athlete_id: selectedAthlete } : {}),
+    queryFn: () => valdApi.summary(selectedAthlete ? { athlete_key: selectedAthlete } : {}),
   })
 
   const params = {
     days,
-    ...(selectedAthlete ? { athlete_id: selectedAthlete } : {}),
+    ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}),
     ...(testType ? { test_type: testType } : {}),
   }
 
@@ -41,18 +42,13 @@ export default function Vald() {
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       <PageHeader title="VALD ForceDecks" subtitle="Force plate test history and results">
-        <select
+        <SelectDropdown
+          options={testTypes}
           value={testType}
-          onChange={e => setTestType(e.target.value)}
-          style={{
-            background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
-            borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px',
-            padding: '6px 12px', cursor: 'pointer', outline: 'none',
-          }}
-        >
-          <option value="">All test types</option>
-          {testTypes.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
+          onChange={setTestType}
+          placeholder="All test types"
+          minWidth={180}
+        />
         <div className="toggle-group">
           {[30, 90, 365].map(d => (
             <button key={d} className={`toggle-btn ${days === d ? 'active' : ''}`} onClick={() => setDays(d)}>

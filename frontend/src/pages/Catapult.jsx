@@ -5,6 +5,7 @@ import { useDashboard } from '../context/DashboardContext'
 import KPICard from '../components/ui/KPICard'
 import PageHeader from '../components/ui/PageHeader'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import SelectDropdown from '../components/ui/SelectDropdown'
 import ComboChart from '../components/charts/ComboChart'
 import TrendLineChart from '../components/charts/TrendLineChart'
 
@@ -44,19 +45,14 @@ export default function Catapult() {
 
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <PageHeader title="Catapult — Training Load" subtitle="Player load, high jumps & distance per session">
-        <select
+      <PageHeader title="Catapult" subtitle="Player load, high jumps & distance per session">
+        <SelectDropdown
+          options={activities}
           value={activity}
-          onChange={e => setActivity(e.target.value)}
-          style={{
-            background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
-            borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px',
-            padding: '6px 12px', cursor: 'pointer', outline: 'none',
-          }}
-        >
-          <option value="">All activities</option>
-          {activities.map(a => <option key={a} value={a}>{a}</option>)}
-        </select>
+          onChange={setActivity}
+          placeholder="All activities"
+          minWidth={180}
+        />
         <div className="toggle-group">
           {[7, 14, 28].map(d => (
             <button key={d} className={`toggle-btn ${days === d ? 'active' : ''}`} onClick={() => setDays(d)}>

@@ -5,6 +5,7 @@ import { useDashboard } from '../context/DashboardContext'
 import KPICard from '../components/ui/KPICard'
 import PageHeader from '../components/ui/PageHeader'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import SelectDropdown from '../components/ui/SelectDropdown'
 import TrendLineChart from '../components/charts/TrendLineChart'
 
 function PctBadge({ value }) {
@@ -51,19 +52,14 @@ export default function Gymaware() {
 
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <PageHeader title="Gymaware — Strength & Power" subtitle="Session summary, personal bests & velocity trends">
-        <select
+      <PageHeader title="Gymaware" subtitle="Session summary, personal bests & velocity trends">
+        <SelectDropdown
+          options={exercises}
           value={exercise}
-          onChange={e => setExercise(e.target.value)}
-          style={{
-            background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)',
-            borderRadius: '8px', color: 'var(--text-primary)', fontSize: '13px',
-            padding: '6px 12px', cursor: 'pointer', outline: 'none',
-          }}
-        >
-          <option value="">All exercises</option>
-          {exercises.map(ex => <option key={ex} value={ex}>{ex}</option>)}
-        </select>
+          onChange={setExercise}
+          placeholder="All exercises"
+          minWidth={200}
+        />
         <div className="toggle-group">
           {[14, 30, 90].map(d => (
             <button key={d} className={`toggle-btn ${days === d ? 'active' : ''}`} onClick={() => setDays(d)}>

@@ -64,7 +64,7 @@ export default function MainDashboard() {
 
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <PageHeader title="Main Dashboard" subtitle="Explore & overlay metrics across all sources">
+      <PageHeader title="Player Perfomance Analysis" subtitle="Explore & overlay metrics across all sources">
         {/* Latest / Avg toggle — always visible */}
         <div className="toggle-group">
           {['latest', 'avg'].map(mode => (

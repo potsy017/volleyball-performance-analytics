@@ -86,7 +86,7 @@ def get_exercises(athlete_key: Optional[str] = Query(None)):
     query = (
         client.table("silver_gymaware_summaries")
         .select("exercise_name")
-        .not_.is_("exercise_name", "null")
+        .not_is_null("exercise_name")
     )
     if athlete_key:
         query = query.eq("athlete_internal_key", athlete_key)

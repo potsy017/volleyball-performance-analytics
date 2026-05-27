@@ -50,6 +50,11 @@ class QueryBuilder:
         self._limit_val = n
         return self
 
+    def not_is_null(self, col: str) -> "QueryBuilder":
+        """Filter: column IS NOT NULL  (PostgREST: col=not.is.null)"""
+        self._filters.append((col, "not.is.null"))
+        return self
+
     def execute(self):
         # Build as list of tuples — supports repeated keys (multiple filters)
         params: list[tuple[str, str]] = [("select", self._select)]

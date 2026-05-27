@@ -48,7 +48,7 @@ def get_activities(athlete_key: Optional[str] = Query(None)):
     query = (
         client.table("silver_catapult_session")
         .select("activity_name")
-        .not_.is_("activity_name", "null")
+        .not_is_null("activity_name")
     )
     if athlete_key:
         query = query.eq("athlete_internal_key", athlete_key)
