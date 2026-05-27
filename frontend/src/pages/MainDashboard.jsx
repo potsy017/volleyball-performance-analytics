@@ -65,20 +65,18 @@ export default function MainDashboard() {
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       <PageHeader title="Main Dashboard" subtitle="Explore & overlay metrics across all sources">
-        {/* Latest / Avg toggle — only visible when an athlete is selected */}
-        {selectedAthlete && (
-          <div className="toggle-group">
-            {['latest', 'avg'].map(mode => (
-              <button
-                key={mode}
-                className={`toggle-btn ${kpiMode === mode ? 'active' : ''}`}
-                onClick={() => setKpiMode(mode)}
-              >
-                {mode === 'latest' ? 'Latest' : `${days}d Avg`}
-              </button>
-            ))}
-          </div>
-        )}
+        {/* Latest / Avg toggle — always visible */}
+        <div className="toggle-group">
+          {['latest', 'avg'].map(mode => (
+            <button
+              key={mode}
+              className={`toggle-btn ${kpiMode === mode ? 'active' : ''}`}
+              onClick={() => setKpiMode(mode)}
+            >
+              {mode === 'latest' ? 'Latest' : `${days}d Avg`}
+            </button>
+          ))}
+        </div>
         <div className="toggle-group">
           {WINDOWS.map(w => (
             <button
@@ -157,6 +155,24 @@ export default function MainDashboard() {
                 color={kpis?.avg_recovery >= 67 ? '#4CAF50' : kpis?.avg_recovery >= 34 ? '#F5C400' : '#F44336'} />
               <KPICard label="Avg Resting HR" value={kpis?.avg_resting_hr} unit="bpm" decimals={0}
                 sub={`${days}-day avg`} color="#F44336" />
+              <KPICard label="Sessions" value={kpis?.sessions_count} decimals={0}
+                sub={`last ${days} days`} color="var(--text-secondary)" />
+            </>
+          ) : kpiMode === 'latest' ? (
+            /* All athletes — TEAM LATEST */
+            <>
+              <KPICard label="Player Load" value={kpis?.latest_player_load} decimals={0}
+                sub={kpis?.latest_session_date ? `latest · ${kpis.latest_session_date}` : 'latest session'} />
+              <KPICard label="Load / min" value={kpis?.latest_load_per_min} decimals={2}
+                sub="latest session" color="#C8E600" />
+              <KPICard label="High Jumps" value={kpis?.latest_high_jumps} decimals={0}
+                sub="latest session" color="#F5C400" />
+              <KPICard label="HRV (rMSSD)" value={kpis?.latest_hrv} unit="ms" decimals={0}
+                sub={kpis?.latest_recovery_date ? `latest · ${kpis.latest_recovery_date}` : 'latest'}
+                color="#2196F3" />
+              <KPICard label="Recovery" value={kpis?.latest_recovery} unit="%" decimals={0}
+                sub="latest score"
+                color={kpis?.latest_recovery >= 67 ? '#4CAF50' : kpis?.latest_recovery >= 34 ? '#F5C400' : '#F44336'} />
               <KPICard label="Sessions" value={kpis?.sessions_count} decimals={0}
                 sub={`last ${days} days`} color="var(--text-secondary)" />
             </>
