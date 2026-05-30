@@ -1,15 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 
 /**
- * Reusable dark-styled dropdown — replaces native <select> which has
- * terrible contrast on Windows (white text on bright-blue highlight).
+ * Reusable dark-styled dropdown — replaces native <select>.
  *
  * Props:
- *   options      – string[]          list of option values
- *   value        – string            current selected value ('' = all)
+ *   options      – string[] OR { value: string, label: string }[]
+ *   value        – string   current selected value ('' = placeholder shown)
  *   onChange     – (val: string) => void
- *   placeholder  – string            label shown when value === ''
- *   minWidth     – number | string   (default 160)
+ *   placeholder  – string   label shown when value === ''
+ *   minWidth     – number | string (default 160)
  */
 export default function SelectDropdown({
   options = [],
@@ -21,6 +20,13 @@ export default function SelectDropdown({
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
+  // Normalise options to { value, label } regardless of input format
+  const normalised = options.map(opt =>
+    typeof opt === 'string'
+      ? { value: opt, label: opt }
+      : { value: String(opt.value ?? ''), label: String(opt.label ?? opt.value ?? '') }
+  )
+
   // Close on outside click
   useEffect(() => {
     const handler = (e) => {
@@ -30,7 +36,9 @@ export default function SelectDropdown({
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
-  const label = value || placeholder
+  // Display label for the trigger button
+  const activeOption = normalised.find(o => o.value === value)
+  const triggerLabel = activeOption ? activeOption.label : (value || placeholder)
 
   return (
     <div ref={ref} style={{ position: 'relative', minWidth, flexShrink: 0 }}>
@@ -60,7 +68,7 @@ export default function SelectDropdown({
           whiteSpace: 'nowrap',
           maxWidth: '180px',
         }}>
-          {label}
+          {triggerLabel}
         </span>
         <span style={{
           fontSize: '10px',
@@ -87,32 +95,34 @@ export default function SelectDropdown({
           maxHeight: '320px',
           overflowY: 'auto',
         }}>
-          {/* "All" / placeholder row */}
-          <div
-            onClick={() => { onChange(''); setOpen(false) }}
-            style={{
-              padding: '9px 14px',
-              fontSize: '13px',
-              cursor: 'pointer',
-              color: !value ? 'var(--primary)' : 'var(--text-secondary)',
-              background: !value ? 'rgba(200,230,0,0.08)' : 'transparent',
-              borderBottom: '1px solid var(--border)',
-              transition: 'background 0.1s',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
-            onMouseLeave={e => e.currentTarget.style.background = !value ? 'rgba(200,230,0,0.08)' : 'transparent'}
-          >
-            {placeholder}
-          </div>
+          {/* Placeholder row — only show when placeholder makes sense (value can be '') */}
+          {placeholder && (
+            <div
+              onClick={() => { onChange(''); setOpen(false) }}
+              style={{
+                padding: '9px 14px',
+                fontSize: '13px',
+                cursor: 'pointer',
+                color: !value ? 'var(--primary)' : 'var(--text-secondary)',
+                background: !value ? 'rgba(200,230,0,0.08)' : 'transparent',
+                borderBottom: '1px solid var(--border)',
+                transition: 'background 0.1s',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+              onMouseLeave={e => e.currentTarget.style.background = !value ? 'rgba(200,230,0,0.08)' : 'transparent'}
+            >
+              {placeholder}
+            </div>
+          )}
 
           {/* Option rows */}
-          {options.map(opt => {
-            const isActive = value === opt
+          {normalised.map(opt => {
+            const isActive = value === opt.value
             return (
               <div
-                key={opt}
-                onClick={() => { onChange(opt); setOpen(false) }}
+                key={opt.value}
+                onClick={() => { onChange(opt.value); setOpen(false) }}
                 style={{
                   padding: '9px 14px',
                   fontSize: '13px',
@@ -127,12 +137,12 @@ export default function SelectDropdown({
                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
                 onMouseLeave={e => e.currentTarget.style.background = isActive ? 'rgba(200,230,0,0.08)' : 'transparent'}
               >
-                {opt}
+                {opt.label}
               </div>
             )
           })}
 
-          {options.length === 0 && (
+          {normalised.length === 0 && (
             <div style={{
               padding: '10px 14px',
               fontSize: '12px',

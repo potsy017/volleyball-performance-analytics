@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { catapultApi } from '../services/api'
 import { useDashboard } from '../context/DashboardContext'
@@ -35,6 +35,18 @@ export default function Catapult() {
     queryFn: () => catapultApi.loadTrend({ days, ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}) }),
   })
 
+  const { data: acwrTrend = [] } = useQuery({
+    queryKey: ['acwr-trend', { days, athlete_key: selectedAthlete }],
+    queryFn: () => catapultApi.acwrTrend({ days, ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}) }),
+  })
+
+  // Latest ACWR for the KPI card + traffic light colour
+  const latestAcwr = acwrTrend.length ? acwrTrend[acwrTrend.length - 1]?.acwr : null
+  const acwrColor  = latestAcwr == null ? 'var(--text-secondary)'
+    : latestAcwr > 1.5 || latestAcwr < 0.5 ? '#F44336'
+    : latestAcwr > 1.3 || latestAcwr < 0.8 ? '#F5C400'
+    : '#4CAF50'
+
   const latest = sessions[0] ?? {}
   const avgLoad = sessions.length
     ? sessions.reduce((s, r) => s + (r.total_player_load ?? 0), 0) / sessions.length
@@ -45,7 +57,7 @@ export default function Catapult() {
 
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <PageHeader title="Catapult" subtitle="Player load, high jumps & distance per session">
+      <PageHeader title="Catapult — Training Load" subtitle="Player load, high jumps & distance per session">
         <SelectDropdown
           options={activities}
           value={activity}
@@ -69,6 +81,8 @@ export default function Catapult() {
         <KPICard label="Total Distance" value={latest.total_distance} unit="m" decimals={0} sub="last session" color="#2196F3" />
         <KPICard label="Avg Player Load" value={avgLoad} decimals={0} sub={`${days}-day avg`} color="var(--text-secondary)" />
         <KPICard label="Avg High Jumps" value={avgJumps} decimals={0} sub={`${days}-day avg`} color="var(--text-secondary)" />
+        <KPICard label="ACWR" value={latestAcwr} decimals={2} color={acwrColor}
+          sub="acute:chronic load ratio" />
       </div>
 
       {/* Combo chart */}
@@ -88,6 +102,32 @@ export default function Catapult() {
           />
         )}
       </div>
+
+      {/* ACWR chart with green-zone reference lines */}
+      {acwrTrend.length > 0 && (
+        <div className="card" style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 500 }}>Acute:Chronic Workload Ratio (ACWR)</div>
+            <div style={{ display: 'flex', gap: '12px', fontSize: '11px' }}>
+              <span style={{ color: '#4CAF50' }}>● 0.8–1.3 green zone</span>
+              <span style={{ color: '#F5C400' }}>● 1.3–1.5 caution</span>
+              <span style={{ color: '#F44336' }}>● &gt;1.5 high risk</span>
+            </div>
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+            7-day avg load ÷ 28-day avg load · stay between the dashed lines
+          </div>
+          <TrendLineChart
+            data={acwrTrend}
+            lines={[{ key: 'acwr', name: 'ACWR', color: acwrColor }]}
+            height={200}
+            referenceLines={[
+              { value: 1.3, label: '1.3 upper',  color: '#F5C400' },
+              { value: 0.8, label: '0.8 lower',  color: '#F5C400' },
+            ]}
+          />
+        </div>
+      )}
 
       {/* High jumps trend */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>

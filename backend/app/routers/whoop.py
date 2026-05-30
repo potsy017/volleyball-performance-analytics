@@ -222,4 +222,7 @@ def get_workout(
                       "zone_three_milli", "zone_four_milli", "zone_five_milli"]
         )
         r["total_workout_hours"] = _milli_to_hours(total_ms) if total_ms else None
+        # Calories: 1 kJ ≈ 0.239 kcal
+        kj = r.get("kilojoule")
+        r["calories_kcal"] = round(kj * 0.239, 0) if kj is not None else None
     return rows

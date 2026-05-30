@@ -50,9 +50,15 @@ export default function Whoop() {
 
   const latest = recovery[0] ?? {}
 
+  // Compute personal HRV baseline from trend data (mean over the window)
+  const hrvVals = trend.filter(r => r.hrv_rmssd_milli != null)
+  const hrvBaseline = hrvVals.length
+    ? Math.round(hrvVals.reduce((s, r) => s + r.hrv_rmssd_milli, 0) / hrvVals.length)
+    : null
+
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <PageHeader title="WHOOP" subtitle="HRV, resting heart rate, sleep & recovery scores">
+      <PageHeader title="WHOOP — Recovery" subtitle="HRV, resting heart rate, sleep & recovery scores">
         {/* Tab switcher */}
         <div className="toggle-group">
           {[
@@ -114,6 +120,10 @@ export default function Whoop() {
                   { key: 'resting_heart_rate',  name: 'Resting HR',    color: '#F44336', dashed: true },
                 ]}
                 height={240}
+                referenceLine={hrvBaseline
+                  ? { value: hrvBaseline, label: `Baseline: ${hrvBaseline} ms`, color: '#64B5F6' }
+                  : null
+                }
               />
             )}
           </div>
@@ -255,6 +265,7 @@ export default function Whoop() {
             <KPICard label="Avg HR"          value={workouts[0]?.average_heart_rate} unit="bpm" decimals={0} color="#F44336" sub="last session" />
             <KPICard label="Max HR"          value={workouts[0]?.max_heart_rate}     unit="bpm" decimals={0} color="#EF5350" sub="last session" />
             <KPICard label="Kilojoules"      value={workouts[0]?.kilojoule}          unit="kJ"  decimals={0} color="#FF9800" sub="last session" />
+            <KPICard label="Calories"        value={workouts[0]?.calories_kcal}      unit="kcal" decimals={0} color="#FF9800" sub="last session" />
             <KPICard label="Sessions"        value={workouts.length}                 decimals={0} color="var(--text-secondary)" sub={`last ${days} days`} />
           </div>
 
@@ -280,7 +291,7 @@ export default function Whoop() {
                       {!selectedAthlete && <th>Athlete</th>}
                       <th>Sport</th><th>Strain</th>
                       <th>Avg HR</th><th>Max HR</th>
-                      <th>Duration</th><th>kJ</th>
+                      <th>Duration</th><th>kJ</th><th>Calories</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -294,6 +305,7 @@ export default function Whoop() {
                         <td style={{ color: '#EF5350' }}>{r.max_heart_rate ? `${r.max_heart_rate} bpm` : '—'}</td>
                         <td>{r.total_workout_hours != null ? `${r.total_workout_hours}h` : '—'}</td>
                         <td style={{ color: 'var(--text-secondary)' }}>{r.kilojoule?.toFixed(0) ?? '—'}</td>
+                        <td style={{ color: '#FF9800' }}>{r.calories_kcal != null ? `${r.calories_kcal} kcal` : '—'}</td>
                       </tr>
                     ))}
                   </tbody>

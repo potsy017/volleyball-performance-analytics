@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { dashboardApi } from '../services/api'
@@ -8,6 +8,8 @@ import PageHeader from '../components/ui/PageHeader'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import ComboChart from '../components/charts/ComboChart'
 import TrendLineChart from '../components/charts/TrendLineChart'
+import DualAxisChart, { DUAL_METRICS } from '../components/charts/DualAxisChart'
+import SelectDropdown from '../components/ui/SelectDropdown'
 
 const WINDOWS = [
   { label: '7 days', value: 7 },
@@ -23,9 +25,11 @@ const METRIC_TOGGLES = [
 ]
 
 export default function MainDashboard() {
-  const { selectedAthlete, days, setDays } = useDashboard()
+  const { selectedAthlete, setSelectedAthlete, days, setDays } = useDashboard()
   const [activeMetrics, setActiveMetrics] = useState(['player_load', 'high_jumps', 'hrv'])
   const [kpiMode, setKpiMode] = useState('latest')   // 'latest' | 'avg'
+  const [primaryMetric, setPrimaryMetric]   = useState('total_player_load')
+  const [secondaryMetric, setSecondaryMetric] = useState('hrv_rmssd_milli')
   const navigate = useNavigate()
 
   const params = { days, ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}) }
@@ -49,6 +53,35 @@ export default function MainDashboard() {
   const catapultRows = summary.filter(r => r.source === 'catapult')
   const whoopRows    = summary.filter(r => r.source === 'whoop')
 
+  // Merge catapult + whoop rows by date for the dual-axis chart
+  const mergedData = useMemo(() => {
+    const map = {}
+    catapultRows.forEach(r => {
+      const d = r.session_date || r.calendar_date
+      if (!map[d]) map[d] = { session_date: d }
+      map[d].total_player_load      = r.total_player_load
+      map[d].player_load_per_minute = r.player_load_per_minute
+      map[d].high_jump_count        = r.high_jump_count
+    })
+    whoopRows.forEach(r => {
+      const d = r.session_date || r.calendar_date
+      if (!map[d]) map[d] = { session_date: d }
+      map[d].hrv_rmssd_milli  = r.hrv_rmssd_milli
+      map[d].recovery_score   = r.recovery_score
+      map[d].resting_heart_rate = r.resting_heart_rate
+      map[d].cycle_strain     = r.cycle_strain
+    })
+    return Object.values(map).sort((a, b) => (a.session_date < b.session_date ? -1 : 1))
+  }, [summary])
+
+  // Metric options for dropdowns (exclude whichever is selected on the other axis)
+  const metricOptions = DUAL_METRICS.map(m => ({ value: m.key, label: m.label }))
+  const primaryOptions   = metricOptions.filter(o => o.value !== secondaryMetric)
+  const secondaryOptions = [{ value: '', label: 'None' }, ...metricOptions.filter(o => o.value !== primaryMetric)]
+
+  const pm = DUAL_METRICS.find(m => m.key === primaryMetric)
+  const sm = DUAL_METRICS.find(m => m.key === secondaryMetric)
+
   const toggleMetric = (id) => {
     setActiveMetrics(prev =>
       prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
@@ -62,9 +95,14 @@ export default function MainDashboard() {
     return              { label: 'Low',     cls: 'badge-red' }
   }
 
+  const acwrBadge = (status, value) => {
+    const cls = { green: 'badge-green', amber: 'badge-amber', red: 'badge-red', gray: 'badge-gray' }[status] || 'badge-gray'
+    return { cls, label: value != null ? value.toFixed(2) : '—' }
+  }
+
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <PageHeader title="Player Perfomance Analysis" subtitle="Explore & overlay metrics across all sources">
+      <PageHeader title="Main Dashboard" subtitle="Explore & overlay metrics across all sources">
         {/* Latest / Avg toggle — always visible */}
         <div className="toggle-group">
           {['latest', 'avg'].map(mode => (
@@ -248,6 +286,52 @@ export default function MainDashboard() {
         </div>
       )}
 
+      {/* ── Dual-Axis Configurable Chart ── */}
+      {!summaryLoading && (
+        <div className="card" style={{ marginBottom: '20px' }}>
+          {/* Header row with dropdowns */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Primary Axis:</span>
+              <SelectDropdown
+                options={primaryOptions}
+                value={primaryMetric}
+                onChange={setPrimaryMetric}
+                minWidth={160}
+              />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Secondary Axis:</span>
+              <SelectDropdown
+                options={secondaryOptions}
+                value={secondaryMetric}
+                onChange={setSecondaryMetric}
+                minWidth={160}
+              />
+            </div>
+          </div>
+
+          {/* Dynamic title */}
+          <div style={{ marginBottom: '4px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 600 }}>
+              {pm?.label}{sm ? ` vs ${sm.label}` : ''}
+            </span>
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+            Overlay two metrics to identify correlations and trends.
+            {pm && <span style={{ color: pm.color }}> Left axis: {pm.label} ({pm.unit || 'AU'}). </span>}
+            {sm && <span style={{ color: sm.color }}>Right axis: {sm.label} ({sm.unit || 'AU'}).</span>}
+          </div>
+
+          <DualAxisChart
+            data={mergedData}
+            primaryKey={primaryMetric}
+            secondaryKey={secondaryMetric || null}
+            height={300}
+          />
+        </div>
+      )}
+
       {/* Team snapshot */}
       {!selectedAthlete && (
         <div className="card">
@@ -260,13 +344,20 @@ export default function MainDashboard() {
                     <th>#</th><th>Athlete</th><th>Last Session</th>
                     <th>Player Load</th><th>Load/min</th>
                     <th>High Jumps</th><th>HRV</th><th>Recovery</th>
+                    <th title="Acute:Chronic Workload Ratio (7d÷28d avg load)">ACWR</th>
                   </tr>
                 </thead>
                 <tbody>
                   {teamSnapshot.map(a => {
                     const status = recoveryStatus(a.recovery)
+                    const acwr   = acwrBadge(a.acwr_status, a.acwr)
                     return (
-                      <tr key={a.athlete_internal_key} style={{ cursor: 'pointer' }}>
+                      <tr
+                        key={a.athlete_internal_key}
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setSelectedAthlete(a.athlete_internal_key)}
+                        title={`Click to filter by ${a.athlete_name}`}
+                      >
                         <td style={{ color: 'var(--text-muted)' }}>{a.jersey || '—'}</td>
                         <td style={{ fontWeight: 500 }}>{a.athlete_name}</td>
                         <td style={{ color: 'var(--text-secondary)' }}>{a.last_session || '—'}</td>
@@ -275,6 +366,14 @@ export default function MainDashboard() {
                         <td>{a.high_jumps ?? '—'}</td>
                         <td>{a.hrv ? `${a.hrv.toFixed(0)} ms` : '—'}</td>
                         <td><span className={`badge ${status.cls}`}>{status.label}</span></td>
+                        <td>
+                          <span className={`badge ${acwr.cls}`}>{acwr.label}</span>
+                          {a.acwr_status !== 'gray' && a.acute_load != null && (
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '4px' }}>
+                              ({a.acute_load}/{a.chronic_load})
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     )
                   })}

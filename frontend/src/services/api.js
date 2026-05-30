@@ -30,6 +30,7 @@ export const gymawareApi = {
   pb:           (params) => api.get('/gymaware/pb',            { params }).then(r => r.data),
   sessionVsPb:  (params) => api.get('/gymaware/session-vs-pb', { params }).then(r => r.data),
   velocityTrend:(params) => api.get('/gymaware/velocity-trend',{ params }).then(r => r.data),
+  vlProfile:    (params) => api.get('/gymaware/vl-profile',    { params }).then(r => r.data),
 }
 
 export const catapultApi = {
@@ -37,6 +38,7 @@ export const catapultApi = {
   sessions:   (params) => api.get('/catapult/sessions',   { params }).then(r => r.data),
   activities: (params) => api.get('/catapult/activities', { params }).then(r => r.data),
   loadTrend:  (params) => api.get('/catapult/load-trend', { params }).then(r => r.data),
+  acwrTrend:  (params) => api.get('/catapult/acwr-trend', { params }).then(r => r.data),
 }
 
 export const valdApi = {
