@@ -1,13 +1,17 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { gymawareApi } from '../services/api'
 import { useDashboard } from '../context/DashboardContext'
 import KPICard from '../components/ui/KPICard'
 import PageHeader from '../components/ui/PageHeader'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import SelectDropdown from '../components/ui/SelectDropdown'
+import DateRangePicker from '../components/ui/DateRangePicker'
+import LastSync from '../components/ui/LastSync'
 import TrendLineChart from '../components/charts/TrendLineChart'
 import VLScatterChart from '../components/charts/VLScatterChart'
+import { downloadCsv } from '../utils/csvExport'
 
 function PctBadge({ value }) {
   if (value == null) return <span style={{ color: 'var(--text-muted)' }}>—</span>
@@ -19,6 +23,7 @@ export default function Gymaware() {
   const { selectedAthlete } = useDashboard()
   const [exercise, setExercise] = useState('')
   const [days, setDays] = useState(30)
+  const navigate = useNavigate()
 
   const athleteParam = selectedAthlete ? { athlete_key: selectedAthlete } : {}
 
@@ -66,6 +71,13 @@ export default function Gymaware() {
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       <PageHeader title="Gymaware — Strength & Power" subtitle="Session summary, personal bests & velocity trends">
+        <LastSync data={sessionData} />
+        {selectedAthlete && (
+          <button className="toggle-btn" onClick={() => navigate('/report')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            🖨 Report
+          </button>
+        )}
         <SelectDropdown
           options={exercises}
           value={exercise}
@@ -73,13 +85,7 @@ export default function Gymaware() {
           placeholder="All exercises"
           minWidth={200}
         />
-        <div className="toggle-group">
-          {[14, 30, 90].map(d => (
-            <button key={d} className={`toggle-btn ${days === d ? 'active' : ''}`} onClick={() => setDays(d)}>
-              {d}d
-            </button>
-          ))}
-        </div>
+        <DateRangePicker days={days} onChange={setDays} />
       </PageHeader>
 
       {/* KPIs */}
@@ -250,7 +256,15 @@ export default function Gymaware() {
 
       {/* Session vs PB table */}
       <div className="card" style={{ marginBottom: '20px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px' }}>Session summary — set by set</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 500 }}>Session summary — set by set</div>
+          <button className="toggle-btn" onClick={() => downloadCsv(sessionData,
+            'gymaware-sessions.csv',
+            ['session_date','athlete_display_name','exercise_name','bar_weight','rep_count',
+             'todays_mean_velocity','todays_peak_velocity','pct_of_pb_mean','pct_of_pb_peak',
+             'pb_mean_velocity','pb_peak_velocity']
+          )}>⬇ Export CSV</button>
+        </div>
         {sessLoading ? <LoadingSpinner /> : (
           <div style={{ overflowX: 'auto' }}>
             <table className="vpa-table">

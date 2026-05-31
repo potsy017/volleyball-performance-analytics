@@ -1,17 +1,22 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { catapultApi } from '../services/api'
 import { useDashboard } from '../context/DashboardContext'
 import KPICard from '../components/ui/KPICard'
 import PageHeader from '../components/ui/PageHeader'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import SelectDropdown from '../components/ui/SelectDropdown'
+import DateRangePicker from '../components/ui/DateRangePicker'
+import LastSync from '../components/ui/LastSync'
 import ComboChart from '../components/charts/ComboChart'
 import TrendLineChart from '../components/charts/TrendLineChart'
+import { downloadCsv } from '../utils/csvExport'
 
 export default function Catapult() {
   const { selectedAthlete } = useDashboard()
   const [days, setDays] = useState(14)
+  const navigate = useNavigate()
   const [activity, setActivity] = useState('')
 
   const params = {
@@ -61,6 +66,13 @@ export default function Catapult() {
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       <PageHeader title="Catapult — Training Load" subtitle="Player load, high jumps & distance per session">
+        <LastSync data={sessions} />
+        {selectedAthlete && (
+          <button className="toggle-btn" onClick={() => navigate('/report')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            🖨 Report
+          </button>
+        )}
         <SelectDropdown
           options={activities}
           value={activity}
@@ -68,13 +80,7 @@ export default function Catapult() {
           placeholder="All activities"
           minWidth={180}
         />
-        <div className="toggle-group">
-          {[7, 14, 28].map(d => (
-            <button key={d} className={`toggle-btn ${days === d ? 'active' : ''}`} onClick={() => setDays(d)}>
-              {d}d
-            </button>
-          ))}
-        </div>
+        <DateRangePicker days={days} onChange={setDays} />
       </PageHeader>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
@@ -158,7 +164,14 @@ export default function Catapult() {
 
       {/* Session log table */}
       <div className="card">
-        <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px' }}>Session log</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 500 }}>Session log</div>
+          <button className="toggle-btn" onClick={() => downloadCsv(sessions,
+            'catapult-sessions.csv',
+            ['session_date','athlete_display_name','activity_name','total_player_load',
+             'player_load_per_minute','high_jump_count','session_jump_count','total_distance','field_time']
+          )}>⬇ Export CSV</button>
+        </div>
         {isLoading ? <LoadingSpinner /> : (
           <div style={{ overflowX: 'auto' }}>
             <table className="vpa-table">

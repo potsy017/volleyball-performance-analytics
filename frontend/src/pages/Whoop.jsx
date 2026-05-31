@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { whoopApi } from '../services/api'
 import { useDashboard } from '../context/DashboardContext'
 import KPICard from '../components/ui/KPICard'
 import PageHeader from '../components/ui/PageHeader'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import DateRangePicker from '../components/ui/DateRangePicker'
+import LastSync from '../components/ui/LastSync'
 import TrendLineChart from '../components/charts/TrendLineChart'
+import { downloadCsv } from '../utils/csvExport'
 
 const recoveryColor = (v) =>
   v == null ? 'var(--text-secondary)' : v >= 67 ? '#4CAF50' : v >= 34 ? '#F5C400' : '#F44336'
@@ -29,7 +33,8 @@ function SleepBar({ deep, rem, light, total }) {
 export default function Whoop() {
   const { selectedAthlete } = useDashboard()
   const [days, setDays] = useState(14)
-  const [tab, setTab] = useState('recovery')  // 'recovery' | 'sleep' | 'workout'
+  const [tab, setTab] = useState('recovery')
+  const navigate = useNavigate()
 
   const params = { days, ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}) }
 
@@ -59,7 +64,13 @@ export default function Whoop() {
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       <PageHeader title="WHOOP — Recovery" subtitle="HRV, resting heart rate, sleep & recovery scores">
-        {/* Tab switcher */}
+        <LastSync data={recovery} />
+        {selectedAthlete && (
+          <button className="toggle-btn" onClick={() => navigate('/report')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            🖨 Report
+          </button>
+        )}
         <div className="toggle-group">
           {[
             { id: 'recovery', label: 'Recovery' },
@@ -72,13 +83,7 @@ export default function Whoop() {
             >{t.label}</button>
           ))}
         </div>
-        <div className="toggle-group">
-          {[7, 14, 28].map(d => (
-            <button key={d} className={`toggle-btn ${days === d ? 'active' : ''}`} onClick={() => setDays(d)}>
-              {d}d
-            </button>
-          ))}
-        </div>
+        <DateRangePicker days={days} onChange={setDays} />
       </PageHeader>
 
       {/* Linking note */}
@@ -150,7 +155,14 @@ export default function Whoop() {
 
           {/* Recovery log table */}
           <div className="card">
-            <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px' }}>Recovery log</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 500 }}>Recovery log</div>
+              <button className="toggle-btn" onClick={() => downloadCsv(recovery,
+                'whoop-recovery.csv',
+                ['session_date','athlete_display_name','hrv_rmssd_milli','resting_heart_rate',
+                 'recovery_score','cycle_strain','spo2_percentage','skin_temp_celsius']
+              )}>⬇ Export CSV</button>
+            </div>
             {isLoading ? <LoadingSpinner /> : (
               <div style={{ overflowX: 'auto' }}>
                 <table className="vpa-table">

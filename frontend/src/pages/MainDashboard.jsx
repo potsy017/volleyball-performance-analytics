@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { dashboardApi } from '../services/api'
+import { dashboardApi, catapultApi, whoopApi } from '../services/api'
+import LastSync from '../components/ui/LastSync'
+import { downloadCsv } from '../utils/csvExport'
 import { useDashboard } from '../context/DashboardContext'
 import KPICard from '../components/ui/KPICard'
 import PageHeader from '../components/ui/PageHeader'
@@ -10,12 +12,8 @@ import ComboChart from '../components/charts/ComboChart'
 import TrendLineChart from '../components/charts/TrendLineChart'
 import DualAxisChart, { DUAL_METRICS } from '../components/charts/DualAxisChart'
 import SelectDropdown from '../components/ui/SelectDropdown'
+import DateRangePicker from '../components/ui/DateRangePicker'
 
-const WINDOWS = [
-  { label: '7 days', value: 7 },
-  { label: '14 days', value: 14 },
-  { label: '28 days', value: 28 },
-]
 
 const METRIC_TOGGLES = [
   { id: 'player_load', label: 'Player Load', color: '#4CAF50' },
@@ -50,29 +48,63 @@ export default function MainDashboard() {
     enabled: !selectedAthlete,
   })
 
+  // ACWR + chronic/acute load (for dual-axis options)
+  const { data: acwrTrend = [] } = useQuery({
+    queryKey: ['dash-acwr', params],
+    queryFn: () => catapultApi.acwrTrend(params),
+  })
+
+  // Sleep data (for sleep performance % axis option)
+  const { data: sleepData = [] } = useQuery({
+    queryKey: ['dash-sleep', params],
+    queryFn: () => whoopApi.sleep(params),
+  })
+
   const catapultRows = summary.filter(r => r.source === 'catapult')
   const whoopRows    = summary.filter(r => r.source === 'whoop')
 
-  // Merge catapult + whoop rows by date for the dual-axis chart
+  // Merge all sources by date for the dual-axis chart
   const mergedData = useMemo(() => {
     const map = {}
+
+    // Catapult — player load, load/min, high jumps, total distance
     catapultRows.forEach(r => {
       const d = r.session_date || r.calendar_date
       if (!map[d]) map[d] = { session_date: d }
       map[d].total_player_load      = r.total_player_load
       map[d].player_load_per_minute = r.player_load_per_minute
       map[d].high_jump_count        = r.high_jump_count
+      map[d].total_distance         = r.total_distance
     })
+
+    // WHOOP recovery — HRV, recovery score, resting HR, strain
     whoopRows.forEach(r => {
       const d = r.session_date || r.calendar_date
       if (!map[d]) map[d] = { session_date: d }
-      map[d].hrv_rmssd_milli  = r.hrv_rmssd_milli
-      map[d].recovery_score   = r.recovery_score
+      map[d].hrv_rmssd_milli    = r.hrv_rmssd_milli
+      map[d].recovery_score     = r.recovery_score
       map[d].resting_heart_rate = r.resting_heart_rate
-      map[d].cycle_strain     = r.cycle_strain
+      map[d].cycle_strain       = r.cycle_strain
     })
+
+    // ACWR trend — acute load, chronic load, ACWR ratio
+    acwrTrend.forEach(r => {
+      const d = r.session_date
+      if (!map[d]) map[d] = { session_date: d }
+      map[d].acwr         = r.acwr
+      map[d].acute_load   = r.acute_load
+      map[d].chronic_load = r.chronic_load
+    })
+
+    // WHOOP sleep — sleep performance %
+    sleepData.forEach(r => {
+      const d = r.session_date || r.calendar_date
+      if (!map[d]) map[d] = { session_date: d }
+      map[d].sleep_performance_percentage = r.sleep_performance_percentage
+    })
+
     return Object.values(map).sort((a, b) => (a.session_date < b.session_date ? -1 : 1))
-  }, [summary])
+  }, [summary, acwrTrend, sleepData])
 
   // Metric options for dropdowns (exclude whichever is selected on the other axis)
   const metricOptions = DUAL_METRICS.map(m => ({ value: m.key, label: m.label }))
@@ -103,6 +135,12 @@ export default function MainDashboard() {
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       <PageHeader title="Main Dashboard" subtitle="Explore & overlay metrics across all sources">
+        {selectedAthlete && (
+          <button className="toggle-btn" onClick={() => navigate('/report')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            🖨 Report
+          </button>
+        )}
         {/* Latest / Avg toggle — always visible */}
         <div className="toggle-group">
           {['latest', 'avg'].map(mode => (
@@ -115,17 +153,7 @@ export default function MainDashboard() {
             </button>
           ))}
         </div>
-        <div className="toggle-group">
-          {WINDOWS.map(w => (
-            <button
-              key={w.value}
-              className={`toggle-btn ${days === w.value ? 'active' : ''}`}
-              onClick={() => setDays(w.value)}
-            >
-              {w.label}
-            </button>
-          ))}
-        </div>
+        <DateRangePicker days={days} onChange={setDays} />
       </PageHeader>
 
       {/* Metric toggles */}
@@ -335,7 +363,17 @@ export default function MainDashboard() {
       {/* Team snapshot */}
       {!selectedAthlete && (
         <div className="card">
-          <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px' }}>Team snapshot — latest data per athlete</div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ fontSize: '13px', fontWeight: 500 }}>Team snapshot — latest data per athlete</div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <LastSync data={summary} />
+              <button className="toggle-btn" onClick={() => downloadCsv(teamSnapshot,
+                'team-snapshot.csv',
+                ['athlete_name','last_session','player_load','load_per_min','high_jumps',
+                 'hrv','recovery','acwr','acute_load','chronic_load','acwr_status']
+              )}>⬇ Export CSV</button>
+            </div>
+          </div>
           {snapshotLoading ? <LoadingSpinner /> : (
             <div style={{ overflowX: 'auto' }}>
               <table className="vpa-table">
