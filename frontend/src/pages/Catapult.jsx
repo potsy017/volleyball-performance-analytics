@@ -40,11 +40,14 @@ export default function Catapult() {
     queryFn: () => catapultApi.acwrTrend({ days, ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}) }),
   })
 
-  // Latest ACWR for the KPI card + traffic light colour
-  const latestAcwr = acwrTrend.length ? acwrTrend[acwrTrend.length - 1]?.acwr : null
-  const acwrColor  = latestAcwr == null ? 'var(--text-secondary)'
+  // Latest ACWR row for KPI cards + traffic light colour (coach's bounds: 0.8–1.4 green)
+  const latestAcwrRow  = acwrTrend.length ? acwrTrend[acwrTrend.length - 1] : null
+  const latestAcwr     = latestAcwrRow?.acwr ?? null
+  const latestAcute    = latestAcwrRow?.acute_load ?? null
+  const latestChronic  = latestAcwrRow?.chronic_load ?? null
+  const acwrColor      = latestAcwr == null ? 'var(--text-secondary)'
     : latestAcwr > 1.5 || latestAcwr < 0.5 ? '#F44336'
-    : latestAcwr > 1.3 || latestAcwr < 0.8 ? '#F5C400'
+    : latestAcwr > 1.4 || latestAcwr < 0.8 ? '#F5C400'
     : '#4CAF50'
 
   const latest = sessions[0] ?? {}
@@ -81,8 +84,12 @@ export default function Catapult() {
         <KPICard label="Total Distance" value={latest.total_distance} unit="m" decimals={0} sub="last session" color="#2196F3" />
         <KPICard label="Avg Player Load" value={avgLoad} decimals={0} sub={`${days}-day avg`} color="var(--text-secondary)" />
         <KPICard label="Avg High Jumps" value={avgJumps} decimals={0} sub={`${days}-day avg`} color="var(--text-secondary)" />
+        <KPICard label="Acute Load" value={latestAcute} decimals={1} color="#F5C400"
+          sub="7-day avg AU/day" />
+        <KPICard label="Chronic Load" value={latestChronic} decimals={1} color="#2196F3"
+          sub="28-day avg AU/day" />
         <KPICard label="ACWR" value={latestAcwr} decimals={2} color={acwrColor}
-          sub="acute:chronic load ratio" />
+          sub="acute ÷ chronic" />
       </div>
 
       {/* Combo chart */}
@@ -109,8 +116,8 @@ export default function Catapult() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
             <div style={{ fontSize: '13px', fontWeight: 500 }}>Acute:Chronic Workload Ratio (ACWR)</div>
             <div style={{ display: 'flex', gap: '12px', fontSize: '11px' }}>
-              <span style={{ color: '#4CAF50' }}>● 0.8–1.3 green zone</span>
-              <span style={{ color: '#F5C400' }}>● 1.3–1.5 caution</span>
+              <span style={{ color: '#4CAF50' }}>● 0.8–1.4 green zone</span>
+              <span style={{ color: '#F5C400' }}>● 1.4–1.5 caution</span>
               <span style={{ color: '#F44336' }}>● &gt;1.5 high risk</span>
             </div>
           </div>
@@ -122,7 +129,7 @@ export default function Catapult() {
             lines={[{ key: 'acwr', name: 'ACWR', color: acwrColor }]}
             height={200}
             referenceLines={[
-              { value: 1.3, label: '1.3 upper',  color: '#F5C400' },
+              { value: 1.4, label: '1.4 upper',  color: '#F5C400' },
               { value: 0.8, label: '0.8 lower',  color: '#F5C400' },
             ]}
           />

@@ -149,6 +149,25 @@ def get_acwr_trend(
 
         if acwr_vals:
             avg_acwr = round(sum(acwr_vals) / len(acwr_vals), 2)
-            result.append({"session_date": d, "acwr": avg_acwr})
+            # Also surface the raw load values so the frontend can show them as KPIs
+            all_acute   = []
+            all_chronic = []
+            for akey in athletes:
+                acute_sum   = sum(
+                    daily_load.get((d_obj - timedelta(days=i)).isoformat(), {}).get(akey, 0.0)
+                    for i in range(7)
+                )
+                chronic_sum = sum(
+                    daily_load.get((d_obj - timedelta(days=i)).isoformat(), {}).get(akey, 0.0)
+                    for i in range(28)
+                )
+                all_acute.append(acute_sum / 7)
+                all_chronic.append(chronic_sum / 28)
+            result.append({
+                "session_date":  d,
+                "acwr":          avg_acwr,
+                "acute_load":    round(sum(all_acute)   / len(all_acute),   1) if all_acute   else None,
+                "chronic_load":  round(sum(all_chronic) / len(all_chronic), 1) if all_chronic else None,
+            })
 
     return result

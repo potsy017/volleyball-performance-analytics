@@ -289,7 +289,12 @@ export default function Gymaware() {
 
       {/* PB table */}
       <div className="card">
-        <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px' }}>Personal best records</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 500 }}>Personal best records</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+            ⚠ PBs reflect current dataset only — not all-time records
+          </div>
+        </div>
         {pbLoading ? <LoadingSpinner /> : (
           <div style={{ overflowX: 'auto' }}>
             <table className="vpa-table">
