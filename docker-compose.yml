@@ -18,7 +18,7 @@ services:
     ports:
       - "3000:80"
     environment:
-      - BACKEND_HOST=backend       # Docker service name — works locally
+      - BACKEND_URL=http://backend:8000  # Full URL for local Docker
     depends_on:
       - backend
     networks:
