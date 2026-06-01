@@ -63,7 +63,7 @@ export default function Whoop() {
 
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <PageHeader title="WHOOP — Recovery" subtitle="HRV, resting heart rate, sleep & recovery scores">
+      <PageHeader title="Whoop" subtitle="HRV, resting heart rate, sleep & recovery scores">
         <LastSync data={recovery} />
         {selectedAthlete && (
           <button className="toggle-btn" onClick={() => navigate('/report')}

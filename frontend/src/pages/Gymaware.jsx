@@ -70,7 +70,7 @@ export default function Gymaware() {
 
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <PageHeader title="Gymaware — Strength & Power" subtitle="Session summary, personal bests & velocity trends">
+      <PageHeader title="Gymaware" subtitle="Session summary, personal bests & velocity trends">
         <LastSync data={sessionData} />
         {selectedAthlete && (
           <button className="toggle-btn" onClick={() => navigate('/report')}
@@ -257,7 +257,7 @@ export default function Gymaware() {
       {/* Session vs PB table */}
       <div className="card" style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 500 }}>Session summary — set by set</div>
+          <div style={{ fontSize: '13px', fontWeight: 500 }}>Session summary (set by set)</div>
           <button className="toggle-btn" onClick={() => downloadCsv(sessionData,
             'gymaware-sessions.csv',
             ['session_date','athlete_display_name','exercise_name','bar_weight','rep_count',

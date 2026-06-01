@@ -65,7 +65,7 @@ export default function Catapult() {
 
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <PageHeader title="Catapult — Training Load" subtitle="Player load, high jumps & distance per session">
+      <PageHeader title="Catapult" subtitle="Player load, high jumps & distance per session">
         <LastSync data={sessions} />
         {selectedAthlete && (
           <button className="toggle-btn" onClick={() => navigate('/report')}
@@ -101,7 +101,7 @@ export default function Catapult() {
       {/* Combo chart */}
       <div className="card" style={{ marginBottom: '16px' }}>
         <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Player Load — volume vs intensity</span>
+          <span>Player Load (volume vs intensity)</span>
           <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>bars = total load · line = load/min</span>
         </div>
         {isLoading ? <LoadingSpinner /> : (
