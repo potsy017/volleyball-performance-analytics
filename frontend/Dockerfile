@@ -7,6 +7,12 @@ RUN npm run build
 
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy nginx config as a template — BACKEND_HOST is substituted at container start
+COPY nginx.conf /etc/nginx/nginx.conf.template
+
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+
+# envsubst replaces only ${BACKEND_HOST}, leaving nginx variables like $uri untouched
+CMD ["/bin/sh", "-c", \
+  "envsubst '${BACKEND_HOST}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
