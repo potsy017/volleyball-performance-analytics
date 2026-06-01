@@ -13,12 +13,13 @@ services:
     restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - VITE_API_URL=http://localhost:8000/api   # local backend URL baked into build
     container_name: vpa_frontend
     ports:
       - "3000:80"
-    environment:
-      - BACKEND_URL=http://backend:8000  # Full URL for local Docker
     depends_on:
       - backend
     networks:

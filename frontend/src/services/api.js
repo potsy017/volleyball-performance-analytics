@@ -1,7 +1,8 @@
 import axios from 'axios'
 
+// VITE_API_URL is set at build time (Railway) or falls back to local backend
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
   headers: { 'Content-Type': 'application/json' },
 })
 

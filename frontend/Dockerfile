@@ -3,16 +3,15 @@ WORKDIR /app
 COPY package.json .
 RUN npm install
 COPY . .
+
+# VITE_API_URL is baked into the JS bundle at build time
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
+
 RUN npm run build
 
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx config as a template — BACKEND_HOST is substituted at container start
-COPY nginx.conf /etc/nginx/nginx.conf.template
-
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
-
-# envsubst replaces only ${BACKEND_HOST}, leaving nginx variables like $uri untouched
-CMD ["/bin/sh", "-c", \
-  "envsubst '${BACKEND_HOST}' < /etc/nginx/nginx.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["nginx", "-g", "daemon off;"]
