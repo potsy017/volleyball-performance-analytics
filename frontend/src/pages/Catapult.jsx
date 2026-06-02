@@ -97,16 +97,8 @@ export default function Catapult() {
 
   function handleRowClick(r) {
     const key = rowKey(r)
-    if (selectedRowKey === key) {
-      // Deselect on second click
-      setSelectedRowKey(null)
-    } else {
-      setSelectedRowKey(key)
-      // Also set focusedDay so the session log filters to this date
-      const next = new URLSearchParams(searchParams)
-      next.set('day', r.session_date || r.calendar_date)
-      setSearchParams(next, { replace: true })
-    }
+    // Toggle selection — other rows stay visible, only the highlight changes
+    setSelectedRowKey(prev => (prev === key ? null : key))
   }
 
   return (
@@ -156,12 +148,7 @@ export default function Catapult() {
             <button
               type="button"
               className="toggle-btn"
-              onClick={() => {
-                setSelectedRowKey(null)
-                const next = new URLSearchParams(searchParams)
-                next.delete('day')
-                setSearchParams(next, { replace: true })
-              }}
+              onClick={() => setSelectedRowKey(null)}
             >
               ✕ Clear
             </button>

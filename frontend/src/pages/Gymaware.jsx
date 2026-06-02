@@ -417,7 +417,7 @@ export default function Gymaware() {
             </>
           ) : vlProfile.length === 1 ? (
             <div className="card" style={{ marginBottom: '20px', textAlign: 'center', color: 'var(--text-secondary)', padding: '24px' }}>
-              Only 1 session found for this exercise — need ≥2 sessions to show V-L trend.
+              Only 1 session found for this exercise: need ≥2 sessions to show V-L trend.
             </div>
           ) : null}
         </>
