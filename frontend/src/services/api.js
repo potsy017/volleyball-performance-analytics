@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+// Production: set VITE_API_URL at build time (e.g. Railway).
+// Local dev: use /api so Vite proxies to the backend (avoids CORS localhost vs 127.0.0.1).
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -30,6 +32,9 @@ export const gymawareApi = {
   pb:           (params) => api.get('/gymaware/pb',            { params }).then(r => r.data),
   sessionVsPb:  (params) => api.get('/gymaware/session-vs-pb', { params }).then(r => r.data),
   velocityTrend:(params) => api.get('/gymaware/velocity-trend',{ params }).then(r => r.data),
+  vlProfile:    (params) => api.get('/gymaware/vl-profile',    { params }).then(r => r.data),
+  loadVelocityAnalysis: (params) =>
+    api.get('/gymaware/load-velocity-analysis', { params }).then(r => r.data),
 }
 
 export const catapultApi = {
@@ -37,6 +42,7 @@ export const catapultApi = {
   sessions:   (params) => api.get('/catapult/sessions',   { params }).then(r => r.data),
   activities: (params) => api.get('/catapult/activities', { params }).then(r => r.data),
   loadTrend:  (params) => api.get('/catapult/load-trend', { params }).then(r => r.data),
+  acwrTrend:  (params) => api.get('/catapult/acwr-trend', { params }).then(r => r.data),
 }
 
 export const valdApi = {

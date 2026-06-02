@@ -136,20 +136,40 @@ def get_summary(
     return cat + gym + whoop
 
 
+def _acwr_status(acwr) -> str:
+    """Traffic light based on Acute:Chronic Workload Ratio.
+    Coach's bounds: green 0.8–1.4 | amber 1.4–1.5 or 0.5–0.8 | red >1.5 or <0.5
+    """
+    if acwr is None:
+        return "gray"
+    if acwr > 1.5 or acwr < 0.5:
+        return "red"
+    if acwr > 1.4 or acwr < 0.8:
+        return "amber"
+    return "green"
+
+
 @router.get("/team-snapshot")
 def get_team_snapshot():
     client = get_client()
 
+    since_28 = _since(28)
+    since_7  = _since(7)
+
+    # Fetch 28 days of catapult data for ACWR computation + latest session info
     cat = (
         client.table("silver_catapult_session")
         .select(
             "athlete_internal_key, athlete_display_name, calendar_date,"
-            "total_player_load, player_load_per_minute, field_time,"
+            "total_player_load, player_load_per_minute,"
             "high_jump_count_ima_bands_6_8"
         )
+        .gte("calendar_date", since_28)
         .order("calendar_date", desc=True)
+        .limit(5000)
         .execute().data
-    )
+    ) or []
+
     rec = (
         client.table("silver_whoop_recovery")
         .select(
@@ -159,41 +179,61 @@ def get_team_snapshot():
         .eq("score_state", "SCORED")
         .order("calendar_date", desc=True)
         .execute().data
-    )
-    # Build athlete registry from the catapult silver table
-    # (avoids dependency on athlete_info having athlete_internal_key)
-    athletes_raw = (
-        client.table("silver_catapult_session")
-        .select("athlete_internal_key, athlete_display_name")
-        .limit(5000)
-        .execute().data
-    )
+    ) or []
 
+    # Build athlete registry
     seen = {}
-    for a in athletes_raw or []:
-        akey = a.get("athlete_internal_key")
-        if not akey or akey in seen:
-            continue
-        seen[akey] = {
-            "athlete_internal_key": akey,
-            "athlete_name": a.get("athlete_display_name", ""),
-            "jersey": None,
-            "last_session": None,
-            "player_load": None,
-            "load_per_min": None,
-            "high_jumps": None,
-            "hrv": None,
-            "recovery": None,
-        }
-
     for r in cat:
         akey = r.get("athlete_internal_key")
-        if akey in seen and seen[akey]["player_load"] is None:
-            seen[akey]["last_session"] = r.get("calendar_date")
-            seen[akey]["player_load"]  = r.get("total_player_load")
-            seen[akey]["load_per_min"] = r.get("player_load_per_minute")
-            seen[akey]["high_jumps"]   = r.get("high_jump_count_ima_bands_6_8")
+        if not akey:
+            continue
+        if akey not in seen:
+            seen[akey] = {
+                "athlete_internal_key": akey,
+                "athlete_name": r.get("athlete_display_name", ""),
+                "jersey": None,
+                "last_session": None,
+                "player_load": None,
+                "load_per_min": None,
+                "high_jumps": None,
+                "hrv": None,
+                "recovery": None,
+                "acwr": None,
+                "acute_load": None,
+                "chronic_load": None,
+                "acwr_status": "gray",
+                "_loads_28": [],
+                "_loads_7": [],
+            }
+        row = seen[akey]
+        load = r.get("total_player_load")
+        cal  = r.get("calendar_date", "")
+        if load is not None:
+            row["_loads_28"].append(load)
+            if cal >= since_7:
+                row["_loads_7"].append(load)
+        # Latest session values (first row per athlete since ordered desc)
+        if row["player_load"] is None and load is not None:
+            row["last_session"] = cal
+            row["player_load"]  = load
+            row["load_per_min"] = r.get("player_load_per_minute")
+            row["high_jumps"]   = r.get("high_jump_count_ima_bands_6_8")
 
+    # Compute ACWR for each athlete
+    for akey, row in seen.items():
+        loads_28 = row.pop("_loads_28")
+        loads_7  = row.pop("_loads_7")
+        if loads_28:
+            # Divide by days (not session count) — standard ACWR definition
+            acute   = sum(loads_7)  / 7
+            chronic = sum(loads_28) / 28
+            acwr    = round(acute / chronic, 2) if chronic > 0 else None
+            row["acute_load"]   = round(acute, 1)
+            row["chronic_load"] = round(chronic, 1)
+            row["acwr"]         = acwr
+            row["acwr_status"]  = _acwr_status(acwr)
+
+    # Latest WHOOP recovery per athlete
     for r in rec:
         akey = r.get("athlete_internal_key")
         if akey in seen and seen[akey]["hrv"] is None:

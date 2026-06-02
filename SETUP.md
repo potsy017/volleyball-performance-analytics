@@ -10,13 +10,15 @@ vpa/
 │   │   ├── core/config.py
 │   │   ├── db/supabase.py
 │   │   ├── routers/   (athletes, dashboard, gymaware, catapult, vald, whoop)
+│   │   ├── gymaware_exercises.py
+│   │   ├── gymaware_load_velocity.py
 │   │   └── models/schemas.py
 │   ├── requirements.txt
 │   ├── .env.example
 │   └── Dockerfile
 ├── frontend/         React + Vite + Tailwind + MUI
 │   ├── src/
-│   │   ├── pages/    (MainDashboard, Gymaware, Catapult, Vald, Whoop)
+│   │   ├── pages/    (MainDashboard, Readiness, Gymaware, Catapult, Vald, Whoop, AthleteReport)
 │   │   ├── components/
 │   │   ├── services/api.js
 │   │   └── context/DashboardContext.jsx
@@ -109,6 +111,10 @@ docker-compose down
 | SUPABASE_SERVICE_KEY | Service role key (not anon key — gives full DB access) |
 | SECRET_KEY | Any random string (used for future auth) |
 | ALLOWED_ORIGINS | Comma-separated list of allowed frontend origins |
+| AUTH_ENABLED | Optional; `false` until Entra SSO |
+| DATA_SOURCE | Optional; default `supabase` |
+
+Toolkit handover docs (ETL + VPA features): `Capstone-team54-volleyball-toolkit/docs/operations/vpa_application_updates.md`
 
 ---
 
