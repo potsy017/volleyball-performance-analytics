@@ -1,8 +1,9 @@
 import axios from 'axios'
 
-// VITE_API_URL is set at build time (Railway) or falls back to local backend
+// Production: set VITE_API_URL at build time (e.g. Railway).
+// Local dev: use /api so Vite proxies to the backend (avoids CORS localhost vs 127.0.0.1).
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -32,6 +33,8 @@ export const gymawareApi = {
   sessionVsPb:  (params) => api.get('/gymaware/session-vs-pb', { params }).then(r => r.data),
   velocityTrend:(params) => api.get('/gymaware/velocity-trend',{ params }).then(r => r.data),
   vlProfile:    (params) => api.get('/gymaware/vl-profile',    { params }).then(r => r.data),
+  loadVelocityAnalysis: (params) =>
+    api.get('/gymaware/load-velocity-analysis', { params }).then(r => r.data),
 }
 
 export const catapultApi = {

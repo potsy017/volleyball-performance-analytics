@@ -16,6 +16,18 @@ def _since(days: int) -> str:
     return (date.today() - timedelta(days=days)).isoformat()
 
 
+def _date_spine(days: int) -> list[str]:
+    """Every calendar day in the window (inclusive), oldest first."""
+    end = date.today()
+    start = end - timedelta(days=days - 1)
+    out: list[str] = []
+    d = start
+    while d <= end:
+        out.append(d.isoformat())
+        d += timedelta(days=1)
+    return out
+
+
 @router.get("/sessions")
 def get_sessions(
     athlete_key: Optional[str] = Query(None, description="athlete_internal_key e.g. VB-5406785896"),
@@ -93,14 +105,11 @@ def get_acwr_trend(
     days: int = Query(28, ge=7, le=180),
 ):
     """
-    Returns one ACWR value per session-date for the requested window.
-    Always fetches an extra 28 days of history so chronic load is correct
-    even for dates near the start of the window.
-    Green zone: 0.8 – 1.3 | Amber: 1.3 – 1.5 or 0.5 – 0.8 | Red: >1.5 or <0.5
+    Daily acute/chronic load and ACWR for every calendar day in the window.
+    Fetches extra history so rolling 28d chronic is correct at the start of the range.
     """
     client = get_client()
     since_history = _since(days + 28)   # extra 28 for chronic load baseline
-    since_display = _since(days)
 
     query = (
         client.table("silver_catapult_session")
@@ -125,16 +134,21 @@ def get_acwr_trend(
             daily_load[cal][akey] += load
             athletes.add(akey)
 
-    # Collect dates that appear in the display window AND have sessions
-    session_dates = sorted(d for d in daily_load if d >= since_display)
+    # One row per calendar day in the display window (rest days included) so line
+    # charts stay continuous like the hosted dashboard.
+    target_athletes = [athlete_key] if athlete_key else sorted(athletes)
+    if not target_athletes:
+        return []
 
     result = []
-    for d in session_dates:
+    for d in _date_spine(days):
         d_obj = date.fromisoformat(d)
-        acwr_vals = []
-        for akey in athletes:
-            # 7-day acute and 28-day chronic (both divided by days, not session count)
-            acute_sum   = sum(
+        all_acute: list[float] = []
+        all_chronic: list[float] = []
+        acwr_vals: list[float] = []
+
+        for akey in target_athletes:
+            acute_sum = sum(
                 daily_load.get((d_obj - timedelta(days=i)).isoformat(), {}).get(akey, 0.0)
                 for i in range(7)
             )
@@ -142,32 +156,18 @@ def get_acwr_trend(
                 daily_load.get((d_obj - timedelta(days=i)).isoformat(), {}).get(akey, 0.0)
                 for i in range(28)
             )
-            acute   = acute_sum   / 7
+            acute = acute_sum / 7
             chronic = chronic_sum / 28
+            all_acute.append(acute)
+            all_chronic.append(chronic)
             if chronic > 0:
                 acwr_vals.append(acute / chronic)
 
-        if acwr_vals:
-            avg_acwr = round(sum(acwr_vals) / len(acwr_vals), 2)
-            # Also surface the raw load values so the frontend can show them as KPIs
-            all_acute   = []
-            all_chronic = []
-            for akey in athletes:
-                acute_sum   = sum(
-                    daily_load.get((d_obj - timedelta(days=i)).isoformat(), {}).get(akey, 0.0)
-                    for i in range(7)
-                )
-                chronic_sum = sum(
-                    daily_load.get((d_obj - timedelta(days=i)).isoformat(), {}).get(akey, 0.0)
-                    for i in range(28)
-                )
-                all_acute.append(acute_sum / 7)
-                all_chronic.append(chronic_sum / 28)
-            result.append({
-                "session_date":  d,
-                "acwr":          avg_acwr,
-                "acute_load":    round(sum(all_acute)   / len(all_acute),   1) if all_acute   else None,
-                "chronic_load":  round(sum(all_chronic) / len(all_chronic), 1) if all_chronic else None,
-            })
+        result.append({
+            "session_date": d,
+            "acute_load": round(sum(all_acute) / len(all_acute), 1) if all_acute else None,
+            "chronic_load": round(sum(all_chronic) / len(all_chronic), 1) if all_chronic else None,
+            "acwr": round(sum(acwr_vals) / len(acwr_vals), 2) if acwr_vals else None,
+        })
 
     return result

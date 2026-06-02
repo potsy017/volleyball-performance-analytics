@@ -55,6 +55,20 @@ class QueryBuilder:
         self._filters.append((col, "not.is.null"))
         return self
 
+    def in_(self, col: str, vals: list[Any]) -> "QueryBuilder":
+        """Filter: column IN (v1, v2, ...)  (PostgREST: col=in.(v1,v2))"""
+        if not vals:
+            return self
+
+        def _quote(v: Any) -> str:
+            s = str(v)
+            if any(c in s for c in ',()"\\'):
+                return '"' + s.replace('"', '\\"') + '"'
+            return s
+
+        self._filters.append((col, f"in.({','.join(_quote(v) for v in vals)})"))
+        return self
+
     def execute(self):
         # Build as list of tuples — supports repeated keys (multiple filters)
         params: list[tuple[str, str]] = [("select", self._select)]

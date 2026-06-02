@@ -9,6 +9,7 @@ import Catapult from './pages/Catapult'
 import Vald from './pages/Vald'
 import Whoop from './pages/Whoop'
 import AthleteReport from './pages/AthleteReport'
+import Readiness from './pages/Readiness'
 
 export default function App() {
   return (
@@ -43,6 +44,7 @@ export default function App() {
               <Route path="/catapult" element={<ErrorBoundary><Catapult /></ErrorBoundary>} />
               <Route path="/vald"     element={<ErrorBoundary><Vald /></ErrorBoundary>} />
               <Route path="/whoop"    element={<ErrorBoundary><Whoop /></ErrorBoundary>} />
+              <Route path="/readiness" element={<ErrorBoundary><Readiness /></ErrorBoundary>} />
               <Route path="/report"   element={<ErrorBoundary><AthleteReport /></ErrorBoundary>} />
             </Routes>
           </ErrorBoundary>

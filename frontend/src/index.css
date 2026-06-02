@@ -100,6 +100,7 @@ body {
 .badge-amber  { background: rgba(245,196,0,0.15);  color: #FFD54F; }
 .badge-red    { background: rgba(244,67,54,0.15);  color: #EF9A9A; }
 .badge-gray   { background: rgba(255,255,255,0.07); color: var(--text-secondary); }
+.badge-neutral { background: rgba(255,255,255,0.02); color: #E5E7EB; border: 1px solid rgba(255,255,255,0.25); }
 .badge-blue   { background: rgba(33,150,243,0.15); color: #64B5F6; }
 
 /* Toggle group */

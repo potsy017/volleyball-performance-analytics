@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.db.supabase import get_client
 
 router = APIRouter(prefix="/athletes", tags=["athletes"])
@@ -31,8 +31,7 @@ def list_athletes():
         return sorted(seen.values(), key=lambda x: x.get("athlete_display_name") or "")
 
     except Exception as e:
-        # Return the real error as JSON so we can debug
-        return {"error": True, "detail": str(e), "type": type(e).__name__}
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
 
 @router.get("/sources/{athlete_key}")

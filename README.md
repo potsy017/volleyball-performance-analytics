@@ -1,19 +1,22 @@
 # VPA — Volleyball Performance Analytics
 
-A full-stack performance dashboard for coaching staff, built on FastAPI + React. Aggregates GPS (Catapult), recovery (WHOOP), strength (Gymaware), and force plate (VALD) data from Supabase silver tables into a single live interface.
+A full-stack performance dashboard for coaching staff, built on FastAPI + React. Aggregates GPS (Catapult), recovery (WHOOP), strength (GymAware), and force plate (VALD) data from Supabase **silver** tables into a single live interface.
+
+**ETL and silver DDL** live in the capstone toolkit repo: `Capstone-team54-volleyball-toolkit` — see `docs/operations/web_app_handover.md` and `docs/operations/vpa_application_updates.md` there.
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
-vpa/
+Volleyball_Performance_Analysis/
 ├── backend/                  # FastAPI app
 │   ├── app/
-│   │   ├── main.py           # App entry point, CORS, router registration
-│   │   ├── config.py         # Pydantic settings (reads .env)
-│   │   ├── db/
-│   │   │   └── supabase.py   # httpx-based Supabase REST client
+│   │   ├── main.py
+│   │   ├── core/config.py
+│   │   ├── db/supabase.py
+│   │   ├── gymaware_exercises.py
+│   │   ├── gymaware_load_velocity.py
 │   │   └── routers/
 │   │       ├── athletes.py
 │   │       ├── dashboard.py
@@ -22,37 +25,17 @@ vpa/
 │   │       ├── whoop.py
 │   │       └── vald.py
 │   ├── requirements.txt
-│   └── .env                  # ← you create this (not committed)
+│   └── .env                  # you create this (not committed)
 │
-└── frontend/                 # Vite + React app
+└── frontend/                 # Vite + React
     ├── src/
     │   ├── App.jsx
-    │   ├── main.jsx
-    │   ├── index.css
-    │   ├── context/
-    │   │   └── DashboardContext.jsx
-    │   ├── services/
-    │   │   └── api.js
-    │   ├── pages/
-    │   │   ├── MainDashboard.jsx
-    │   │   ├── Catapult.jsx
-    │   │   ├── Gymaware.jsx
-    │   │   ├── Whoop.jsx
-    │   │   └── Vald.jsx
-    │   └── components/
-    │       ├── ErrorBoundary.jsx
-    │       ├── layout/
-    │       │   └── Navbar.jsx
-    │       ├── charts/
-    │       │   ├── ComboChart.jsx
-    │       │   └── TrendLineChart.jsx
-    │       └── ui/
-    │           ├── DarkVeil.jsx
-    │           ├── KPICard.jsx
-    │           ├── PageHeader.jsx
-    │           └── LoadingSpinner.jsx
+    │   ├── pages/            MainDashboard, Readiness, Gymaware, Catapult, Whoop, Vald, AthleteReport
+    │   ├── components/charts/
+    │   ├── components/ui/    StatusBadge, KPICard, …
+    │   └── services/api.js
     ├── package.json
-    └── vite.config.js
+    └── vite.config.js        # proxies /api → backend :8000
 ```
 
 ---
@@ -61,89 +44,80 @@ vpa/
 
 - Python 3.10+
 - Node.js 18+
-- A Supabase project with the silver tables populated
+- Supabase project with silver tables populated (toolkit ETL)
 
 ---
 
-## Backend Setup
+## Quick start
 
-1. **Create the `.env` file** inside `vpa/backend/`:
+See **SETUP.md** for full steps. Summary:
 
-```env
-SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
-```
-
-Use the **service role (secret) key** from your Supabase dashboard under Project Settings → API. Do not use the anon/public key.
-
-2. **Install dependencies and run:**
+**Backend** (`backend/`):
 
 ```bash
-cd vpa/backend
+cp .env.example .env   # SUPABASE_URL, SUPABASE_SERVICE_KEY
 pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+# Windows:
+$env:PYTHONPATH="."
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-The API will be available at `http://localhost:8000`.
-Interactive docs: `http://localhost:8000/api/docs`
-
----
-
-## Frontend Setup
+**Frontend** (`frontend/`):
 
 ```bash
-cd vpa/frontend
 npm install
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`.
+- App: http://127.0.0.1:5173  
+- API docs: http://127.0.0.1:8000/api/docs  
 
-The frontend proxies all `/api` requests to the backend via the Vite config, so both must be running simultaneously.
-
----
-
-## Supabase Silver Tables
-
-The backend reads directly from these tables via the PostgREST REST API:
-
-| Table | Key columns |
-|---|---|
-| `silver_catapult_session` | `athlete_internal_key`, `calendar_date`, `total_player_load`, `player_load_per_minute`, `high_jump_count_ima_bands_6_8`, `total_distance`, `field_time` |
-| `silver_whoop_recovery` | `athlete_internal_key`, `calendar_date`, `hrv_rmssd_milli`, `resting_heart_rate`, `recovery_score`, `cycle_strain`, `score_state` |
-| `silver_whoop_sleep` | `athlete_internal_key`, `calendar_date`, `sleep_performance_percentage`, `sleep_efficiency_percentage`, `total_rem_sleep_time_milli`, `total_slow_wave_sleep_time_milli` |
-| `silver_gymaware_summaries` | `athlete_internal_key`, `calendar_date`, `exercise_name`, `bar_weight`, `mean_velocity`, `peak_velocity` |
-| `silver_gymaware_bests` | `athlete_internal_key`, `exercise_name`, `bar_weight`, `mean_velocity`, `peak_velocity` |
-
-All tables use `athlete_internal_key` (text, e.g. `VB-5406785896`) as the athlete identifier, and `athlete_display_name` for display.
+Both must run for local dev. Frontend uses `/api` (Vite proxy) unless `VITE_API_URL` is set at build time.
 
 ---
 
 ## Pages
 
 | Route | Description |
-|---|---|
-| `/` | Main dashboard — KPI cards, training load, HRV, high jump & velocity charts. Athlete selector + Latest / Avg toggle |
-| `/catapult` | GPS session log, player load combo chart, high jump & distance trends |
-| `/gymaware` | Strength session vs PB table, velocity trend, personal best records |
-| `/whoop` | Recovery scores, HRV trend, sleep breakdown |
-| `/vald` | Force plate test results |
+|-------|-------------|
+| `/` | Main dashboard — KPIs, team snapshot, 3-axis trends, ACWR, daily jumps |
+| `/readiness` | Team readiness table, expandable per-athlete detail, RAG badges |
+| `/gymaware` | Strength sessions, PB, multi-session load–velocity profiles |
+| `/catapult` | GPS sessions and load trends (`?athlete=`, `?day=`) |
+| `/whoop` | Recovery, HRV, sleep, workouts |
+| `/vald` | Force plate tests (when data available) |
+| `/report` | Athlete report |
 
 ---
 
-## Environment Variables
+## Key API endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/dashboard/team-snapshot` | Team overview |
+| `GET /api/gymaware/load-velocity-analysis` | Per-session L–V profiles (25–105 kg) + PB benchmark |
+| `GET /api/catapult/acwr-trend` | ACWR time series |
+
+Full list: http://localhost:8000/api/docs
+
+---
+
+## Environment variables
 
 | Variable | Description |
-|---|---|
-| `SUPABASE_URL` | Your Supabase project URL |
-| `SUPABASE_SERVICE_KEY` | Service role secret key (never expose publicly) |
+|----------|-------------|
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_KEY` | Service role key (server only) |
+| `ALLOWED_ORIGINS` | CORS origins (comma-separated) |
+| `AUTH_ENABLED` | Optional; default `false` until Entra SSO |
+| `DATA_SOURCE` | Optional; default `supabase` |
 
 ---
 
-## Tech Stack
+## Tech stack
 
-**Backend:** FastAPI · httpx · Pydantic · Uvicorn
+**Backend:** FastAPI · httpx · Pydantic · Uvicorn  
 
-**Frontend:** React 18 · Vite · TanStack Query · Recharts · React Router · OGL (WebGL background)
+**Frontend:** React 18 · Vite · TanStack Query · Recharts · React Router  
 
 **Data:** Supabase (PostgreSQL + PostgREST)

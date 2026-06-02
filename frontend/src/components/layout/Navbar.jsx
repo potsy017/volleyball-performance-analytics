@@ -6,6 +6,7 @@ import { useDashboard } from '../../context/DashboardContext'
 
 const NAV_ITEMS = [
   { to: '/',         label: 'Dashboard' },
+  { to: '/readiness', label: 'Readiness' },
   { to: '/gymaware', label: 'Gymaware'  },
   { to: '/catapult', label: 'Catapult'  },
   { to: '/vald',     label: 'VALD'      },
@@ -122,10 +123,12 @@ function AthleteDropdown({ athletes, selectedAthlete, setSelectedAthlete }) {
 
 export default function Navbar() {
   const { selectedAthlete, setSelectedAthlete } = useDashboard()
-  const { data: athletes = [] } = useQuery({
+  const { data: athletesRaw, isError, error } = useQuery({
     queryKey: ['athletes'],
     queryFn: athleteApi.list,
+    retry: 2,
   })
+  const athletes = Array.isArray(athletesRaw) ? athletesRaw : []
 
   return (
     <nav style={{
@@ -183,11 +186,17 @@ export default function Navbar() {
       </div>
 
       {/* Athlete selector */}
-      <AthleteDropdown
-        athletes={athletes}
-        selectedAthlete={selectedAthlete}
-        setSelectedAthlete={setSelectedAthlete}
-      />
+      {isError ? (
+        <span style={{ fontSize: '12px', color: '#F44336', maxWidth: 220 }} title={error?.message}>
+          Athletes failed to load
+        </span>
+      ) : (
+        <AthleteDropdown
+          athletes={athletes}
+          selectedAthlete={selectedAthlete}
+          setSelectedAthlete={setSelectedAthlete}
+        />
+      )}
     </nav>
   )
 }

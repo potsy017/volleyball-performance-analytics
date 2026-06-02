@@ -2,6 +2,17 @@ from fastapi import APIRouter, Query
 from typing import Optional
 from datetime import date, timedelta
 from app.db.supabase import get_client
+from app.gymaware_exercises import (
+    exercise_names_for_query,
+    list_canonical_exercises,
+    normalize_exercise_name,
+    normalize_row_exercise,
+)
+from app.gymaware_load_velocity import (
+    STANDARD_LOAD_STEPS_KG,
+    build_pb_benchmark,
+    build_session_profiles_from_sets,
+)
 
 router = APIRouter(prefix="/gymaware", tags=["gymaware"])
 
@@ -24,6 +35,15 @@ def _since(days: int) -> str:
     return (date.today() - timedelta(days=days)).isoformat()
 
 
+def _apply_exercise_filter(query, exercise: str | None):
+    if not exercise:
+        return query
+    names = exercise_names_for_query(exercise)
+    if len(names) == 1:
+        return query.eq("exercise_name", names[0])
+    return query.in_("exercise_name", names)
+
+
 @router.get("/sessions")
 def get_sessions(
     athlete_key: Optional[str] = Query(None, description="athlete_internal_key"),
@@ -44,13 +64,12 @@ def get_sessions(
     )
     if athlete_key:
         query = query.eq("athlete_internal_key", athlete_key)
-    if exercise:
-        query = query.eq("exercise_name", exercise)
+    query = _apply_exercise_filter(query, exercise)
 
     rows = query.execute().data
     for r in rows:
         r["session_date"] = r.get("calendar_date")
-    return rows
+    return [normalize_row_exercise(r) for r in rows]
 
 
 @router.get("/reps")
@@ -71,13 +90,12 @@ def get_reps(
     )
     if athlete_key:
         query = query.eq("athlete_internal_key", athlete_key)
-    if exercise:
-        query = query.eq("exercise_name", exercise)
+    query = _apply_exercise_filter(query, exercise)
 
     rows = query.execute().data
     for r in rows:
         r["session_date"] = r.get("calendar_date")
-    return rows
+    return [normalize_row_exercise(r) for r in rows]
 
 
 @router.get("/exercises")
@@ -91,7 +109,8 @@ def get_exercises(athlete_key: Optional[str] = Query(None)):
     if athlete_key:
         query = query.eq("athlete_internal_key", athlete_key)
     res = query.execute()
-    return sorted(set(r["exercise_name"] for r in res.data if r.get("exercise_name")))
+    raw = [r["exercise_name"] for r in res.data if r.get("exercise_name")]
+    return list_canonical_exercises(raw)
 
 
 @router.get("/pb")
@@ -112,15 +131,16 @@ def get_personal_bests(
     )
     if athlete_key:
         query = query.eq("athlete_internal_key", athlete_key)
-    if exercise:
-        query = query.eq("exercise_name", exercise)
+    query = _apply_exercise_filter(query, exercise)
 
     rows = query.execute().data
-    # Expose pb_ aliases so frontend doesn't need to change field names
+    out = []
     for r in rows:
+        r = normalize_row_exercise(r)
         r["pb_mean_velocity"] = r.get("mean_velocity")
         r["pb_peak_velocity"] = r.get("peak_velocity")
-    return rows
+        out.append(r)
+    return out
 
 
 @router.get("/session-vs-pb")
@@ -146,24 +166,33 @@ def get_session_vs_pb(
     )
     if athlete_key:
         s_query = s_query.eq("athlete_internal_key", athlete_key)
-    if exercise:
-        s_query = s_query.eq("exercise_name", exercise)
+    s_query = _apply_exercise_filter(s_query, exercise)
     sessions = s_query.execute().data
 
     pb_query = client.table("silver_gymaware_bests").select("*")
     if athlete_key:
         pb_query = pb_query.eq("athlete_internal_key", athlete_key)
+    pb_query = _apply_exercise_filter(pb_query, exercise)
     pbs = pb_query.execute().data
 
-    # Key: (athlete_internal_key, exercise_name, bar_weight)
+    # Key: (athlete_internal_key, canonical exercise_name, bar_weight)
     pb_map = {
-        (p["athlete_internal_key"], p.get("exercise_name"), p.get("bar_weight")): p
+        (
+            p["athlete_internal_key"],
+            normalize_exercise_name(p.get("exercise_name")),
+            p.get("bar_weight"),
+        ): p
         for p in pbs
     }
 
     result = []
     for s in sessions:
-        key = (s["athlete_internal_key"], s.get("exercise_name"), s.get("bar_weight"))
+        s = normalize_row_exercise(s)
+        key = (
+            s["athlete_internal_key"],
+            s.get("exercise_name"),
+            s.get("bar_weight"),
+        )
         pb = pb_map.get(key, {})
         # In bests table, mean_velocity / peak_velocity are the PB values
         pb_mean = pb.get("mean_velocity")
@@ -208,16 +237,16 @@ def get_vl_profile(
     client = get_client()
     since = _since(days)
 
-    rows = (
+    q = (
         client.table("silver_gymaware_summaries")
         .select("calendar_date, bar_weight, mean_velocity, peak_velocity")
         .eq("athlete_internal_key", athlete_key)
-        .eq("exercise_name", exercise)
         .gte("calendar_date", since)
         .order("calendar_date")
         .order("bar_weight")
-        .execute().data
-    ) or []
+    )
+    q = _apply_exercise_filter(q, exercise)
+    rows = q.execute().data or []
 
     # Group by date → list of (load, velocity) pairs using peak velocity
     by_date = defaultdict(list)
@@ -270,6 +299,55 @@ def get_vl_profile(
     return result
 
 
+@router.get("/load-velocity-analysis")
+def get_load_velocity_analysis(
+    athlete_key: str = Query(..., description="athlete_internal_key (required)"),
+    exercise: str = Query(...),
+    days: int = Query(365, ge=30, le=730),
+):
+    """
+    Per-session load–velocity lines on standard kg steps (25–105), from set summaries.
+    Each session needs ≥2 distinct loads; velocities are mean peak per load within the session.
+    """
+    client = get_client()
+    since = _since(days)
+
+    query = (
+        client.table("silver_gymaware_summaries")
+        .select("calendar_date, bar_weight, peak_velocity, rep_count")
+        .eq("athlete_internal_key", athlete_key)
+        .gte("calendar_date", since)
+        .order("calendar_date", desc=False)
+    )
+    query = _apply_exercise_filter(query, exercise)
+    rows = query.execute().data or []
+
+    session_profiles = build_session_profiles_from_sets(rows)
+
+    pb_query = (
+        client.table("silver_gymaware_bests")
+        .select("bar_weight, peak_velocity, mean_velocity")
+        .eq("athlete_internal_key", athlete_key)
+    )
+    pb_query = _apply_exercise_filter(pb_query, exercise)
+    pb_rows = pb_query.execute().data or []
+    pb_benchmark = build_pb_benchmark(pb_rows)
+
+    lmax_vmax_trend = [
+        {"session_date": s["session_date"], "lmax": s["lmax"], "vmax": s["vmax"]}
+        for s in session_profiles
+        if s.get("lmax") is not None or s.get("vmax") is not None
+    ]
+
+    return {
+        "exercise": exercise,
+        "standard_loads_kg": list(STANDARD_LOAD_STEPS_KG),
+        "session_profiles": session_profiles,
+        "pb_benchmark": pb_benchmark,
+        "lmax_vmax_trend": lmax_vmax_trend,
+    }
+
+
 @router.get("/velocity-trend")
 def get_velocity_trend(
     athlete_key: str = Query(..., description="athlete_internal_key (required)"),
@@ -279,23 +357,22 @@ def get_velocity_trend(
     client = get_client()
     since = _since(days)
 
-    sessions = (
+    sq = (
         client.table("silver_gymaware_summaries")
         .select("calendar_date, bar_weight, mean_velocity, peak_velocity")
         .eq("athlete_internal_key", athlete_key)
-        .eq("exercise_name", exercise)
         .gte("calendar_date", since)
         .order("calendar_date")
         .order("bar_weight")
-        .execute().data
     )
-    pbs = (
+    sessions = _apply_exercise_filter(sq, exercise).execute().data
+
+    pq = (
         client.table("silver_gymaware_bests")
         .select("bar_weight, mean_velocity, peak_velocity")
         .eq("athlete_internal_key", athlete_key)
-        .eq("exercise_name", exercise)
-        .execute().data
     )
+    pbs = _apply_exercise_filter(pq, exercise).execute().data
     pb_map = {p["bar_weight"]: p for p in pbs}
 
     result = []

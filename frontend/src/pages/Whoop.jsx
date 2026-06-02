@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { whoopApi } from '../services/api'
 import { useDashboard } from '../context/DashboardContext'
 import KPICard from '../components/ui/KPICard'
@@ -10,12 +10,10 @@ import DateRangePicker from '../components/ui/DateRangePicker'
 import LastSync from '../components/ui/LastSync'
 import TrendLineChart from '../components/charts/TrendLineChart'
 import { downloadCsv } from '../utils/csvExport'
+import StatusBadge, { recoveryBadge } from '../components/ui/StatusBadge'
 
 const recoveryColor = (v) =>
   v == null ? 'var(--text-secondary)' : v >= 67 ? '#4CAF50' : v >= 34 ? '#F5C400' : '#F44336'
-
-const recBadgeClass = (v) =>
-  v == null ? 'badge-gray' : v >= 67 ? 'badge-green' : v >= 34 ? 'badge-amber' : 'badge-red'
 
 // Mini horizontal bar showing sleep stage proportions
 function SleepBar({ deep, rem, light, total }) {
@@ -32,6 +30,8 @@ function SleepBar({ deep, rem, light, total }) {
 
 export default function Whoop() {
   const { selectedAthlete } = useDashboard()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const focusedDay = searchParams.get('day')
   const [days, setDays] = useState(14)
   const [tab, setTab] = useState('recovery')
   const navigate = useNavigate()
@@ -54,12 +54,28 @@ export default function Whoop() {
   })
 
   const latest = recovery[0] ?? {}
+  const focusedRecovery = focusedDay
+    ? recovery.filter(r => (r.session_date || r.calendar_date) === focusedDay)
+    : recovery
+  const focusedWorkouts = focusedDay
+    ? workouts.filter(r => (r.session_date || r.calendar_date) === focusedDay)
+    : workouts
 
   // Compute personal HRV baseline from trend data (mean over the window)
   const hrvVals = trend.filter(r => r.hrv_rmssd_milli != null)
   const hrvBaseline = hrvVals.length
     ? Math.round(hrvVals.reduce((s, r) => s + r.hrv_rmssd_milli, 0) / hrvVals.length)
     : null
+
+  useEffect(() => {
+    if (!focusedDay) return
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const d = new Date(`${focusedDay}T00:00:00`)
+    if (Number.isNaN(d.getTime())) return
+    const needed = Math.max(1, Math.ceil((today.getTime() - d.getTime()) / 86400000) + 1)
+    if (needed > days) setDays(Math.min(365, needed))
+  }, [focusedDay, days])
 
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -85,6 +101,27 @@ export default function Whoop() {
         </div>
         <DateRangePicker days={days} onChange={setDays} />
       </PageHeader>
+
+      {focusedDay && (
+        <div className="card" style={{ marginBottom: '12px', padding: '10px 12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Focused day: <strong style={{ color: 'var(--text-primary)' }}>{focusedDay}</strong>. Tables below are filtered to this date.
+            </div>
+            <button
+              type="button"
+              className="toggle-btn"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams)
+                next.delete('day')
+                setSearchParams(next, { replace: true })
+              }}
+            >
+              Clear day focus
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Linking note */}
       <div style={{
@@ -157,7 +194,7 @@ export default function Whoop() {
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ fontSize: '13px', fontWeight: 500 }}>Recovery log</div>
-              <button className="toggle-btn" onClick={() => downloadCsv(recovery,
+              <button className="toggle-btn" onClick={() => downloadCsv(focusedRecovery,
                 'whoop-recovery.csv',
                 ['session_date','athlete_display_name','hrv_rmssd_milli','resting_heart_rate',
                  'recovery_score','cycle_strain','spo2_percentage','skin_temp_celsius']
@@ -175,15 +212,19 @@ export default function Whoop() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recovery.map((r, i) => (
+                    {focusedRecovery.map((r, i) => (
                       <tr key={i}>
                         <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{r.session_date || r.calendar_date}</td>
                         {!selectedAthlete && <td style={{ fontWeight: 500 }}>{r.athlete_display_name}</td>}
                         <td style={{ color: '#64B5F6', fontWeight: 500 }}>{r.hrv_rmssd_milli?.toFixed(0) ?? '—'}</td>
                         <td style={{ color: '#EF9A9A' }}>{r.resting_heart_rate ? `${r.resting_heart_rate} bpm` : '—'}</td>
-                        <td><span className={`badge ${recBadgeClass(r.recovery_score)}`}>
-                          {r.recovery_score != null ? `${r.recovery_score.toFixed(0)}%` : '—'}
-                        </span></td>
+                        <td>
+                          {(() => {
+                            const b = recoveryBadge(r.recovery_score)
+                            const label = r.recovery_score != null ? `${r.recovery_score.toFixed(0)}%` : b.label
+                            return <StatusBadge label={label} tone={b.tone} title={b.title} />
+                          })()}
+                        </td>
                         <td style={{ color: '#F5C400' }}>{r.cycle_strain?.toFixed(1) ?? '—'}</td>
                         <td>{r.spo2_percentage != null ? `${r.spo2_percentage.toFixed(0)}%` : '—'}</td>
                         <td>{r.skin_temp_celsius != null ? `${r.skin_temp_celsius.toFixed(1)}°C` : '—'}</td>
@@ -241,7 +282,7 @@ export default function Whoop() {
                     </tr>
                   </thead>
                   <tbody>
-                    {recovery.map((r, i) => (
+                  {focusedRecovery.map((r, i) => (
                       <tr key={i}>
                         <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{r.session_date || r.calendar_date}</td>
                         {!selectedAthlete && <td style={{ fontWeight: 500 }}>{r.athlete_display_name}</td>}
@@ -278,7 +319,7 @@ export default function Whoop() {
             <KPICard label="Max HR"          value={workouts[0]?.max_heart_rate}     unit="bpm" decimals={0} color="#EF5350" sub="last session" />
             <KPICard label="Kilojoules"      value={workouts[0]?.kilojoule}          unit="kJ"  decimals={0} color="#FF9800" sub="last session" />
             <KPICard label="Calories"        value={workouts[0]?.calories_kcal}      unit="kcal" decimals={0} color="#FF9800" sub="last session" />
-            <KPICard label="Sessions"        value={workouts.length}                 decimals={0} color="var(--text-secondary)" sub={`last ${days} days`} />
+            <KPICard label="Sessions"        value={focusedWorkouts.length}          decimals={0} color="var(--text-secondary)" sub={focusedDay ? focusedDay : `last ${days} days`} />
           </div>
 
           {/* Workout strain trend */}
@@ -307,7 +348,7 @@ export default function Whoop() {
                     </tr>
                   </thead>
                   <tbody>
-                    {workouts.map((r, i) => (
+                    {focusedWorkouts.map((r, i) => (
                       <tr key={i}>
                         <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{r.session_date || r.calendar_date}</td>
                         {!selectedAthlete && <td style={{ fontWeight: 500 }}>{r.athlete_display_name}</td>}

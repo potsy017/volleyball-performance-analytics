@@ -6,7 +6,7 @@ import {
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
   const p = payload[0]?.payload
-  if (!p?.load) return null
+  if (p?.load == null) return null
   return (
     <div style={{
       background: '#1A1D24', border: '1px solid rgba(255,255,255,0.1)',

@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { catapultApi } from '../services/api'
 import { useDashboard } from '../context/DashboardContext'
 import KPICard from '../components/ui/KPICard'
@@ -15,6 +15,8 @@ import { downloadCsv } from '../utils/csvExport'
 
 export default function Catapult() {
   const { selectedAthlete } = useDashboard()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const focusedDay = searchParams.get('day')
   const [days, setDays] = useState(14)
   const navigate = useNavigate()
   const [activity, setActivity] = useState('')
@@ -62,6 +64,20 @@ export default function Catapult() {
   const avgJumps = sessions.length
     ? sessions.reduce((s, r) => s + (r.high_jump_count ?? 0), 0) / sessions.length
     : null
+  const focusedSessions = useMemo(
+    () => (focusedDay ? sessions.filter(r => (r.session_date || r.calendar_date) === focusedDay) : sessions),
+    [sessions, focusedDay]
+  )
+
+  useEffect(() => {
+    if (!focusedDay) return
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const d = new Date(`${focusedDay}T00:00:00`)
+    if (Number.isNaN(d.getTime())) return
+    const needed = Math.max(1, Math.ceil((today.getTime() - d.getTime()) / 86400000) + 1)
+    if (needed > days) setDays(Math.min(365, needed))
+  }, [focusedDay, days])
 
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -82,6 +98,27 @@ export default function Catapult() {
         />
         <DateRangePicker days={days} onChange={setDays} />
       </PageHeader>
+
+      {focusedDay && (
+        <div className="card" style={{ marginBottom: '12px', padding: '10px 12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Focused day: <strong style={{ color: 'var(--text-primary)' }}>{focusedDay}</strong>. Session log below is filtered to this date.
+            </div>
+            <button
+              type="button"
+              className="toggle-btn"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams)
+                next.delete('day')
+                setSearchParams(next, { replace: true })
+              }}
+            >
+              Clear day focus
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
         <KPICard label="Player Load" value={latest.total_player_load} decimals={0} sub="last session" />
@@ -166,7 +203,7 @@ export default function Catapult() {
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ fontSize: '13px', fontWeight: 500 }}>Session log</div>
-          <button className="toggle-btn" onClick={() => downloadCsv(sessions,
+          <button className="toggle-btn" onClick={() => downloadCsv(focusedSessions,
             'catapult-sessions.csv',
             ['session_date','athlete_display_name','activity_name','total_player_load',
              'player_load_per_minute','high_jump_count','session_jump_count','total_distance','field_time']
@@ -184,7 +221,7 @@ export default function Catapult() {
                 </tr>
               </thead>
               <tbody>
-                {sessions.map((r, i) => (
+                {focusedSessions.map((r, i) => (
                   <tr key={i}>
                     <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{r.session_date || r.calendar_date}</td>
                     {!selectedAthlete && <td style={{ fontWeight: 500 }}>{r.athlete_display_name}</td>}

@@ -13,6 +13,7 @@ import TrendLineChart from '../components/charts/TrendLineChart'
 import DualAxisChart, { DUAL_METRICS } from '../components/charts/DualAxisChart'
 import SelectDropdown from '../components/ui/SelectDropdown'
 import DateRangePicker from '../components/ui/DateRangePicker'
+import StatusBadge, { acwrBadge, recoveryBadge } from '../components/ui/StatusBadge'
 
 
 const METRIC_TOGGLES = [
@@ -26,8 +27,9 @@ export default function MainDashboard() {
   const { selectedAthlete, setSelectedAthlete, days, setDays } = useDashboard()
   const [activeMetrics, setActiveMetrics] = useState(['player_load', 'high_jumps', 'hrv'])
   const [kpiMode, setKpiMode] = useState('latest')   // 'latest' | 'avg'
-  const [primaryMetric, setPrimaryMetric]   = useState('total_player_load')
+  const [primaryMetric, setPrimaryMetric]     = useState('total_player_load')
   const [secondaryMetric, setSecondaryMetric] = useState('hrv_rmssd_milli')
+  const [tertiaryMetric, setTertiaryMetric]   = useState('acwr')
   const navigate = useNavigate()
 
   const params = { days, ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}) }
@@ -63,73 +65,80 @@ export default function MainDashboard() {
   const catapultRows = summary.filter(r => r.source === 'catapult')
   const whoopRows    = summary.filter(r => r.source === 'whoop')
 
-  // Merge all sources by date for the dual-axis chart
+  // Merge all sources onto a dense daily spine (matches hosted dashboard continuity)
   const mergedData = useMemo(() => {
     const map = {}
 
-    // Catapult — player load, load/min, high jumps, total distance
-    catapultRows.forEach(r => {
-      const d = r.session_date || r.calendar_date
-      if (!map[d]) map[d] = { session_date: d }
-      map[d].total_player_load      = r.total_player_load
-      map[d].player_load_per_minute = r.player_load_per_minute
-      map[d].high_jump_count        = r.high_jump_count
-      map[d].total_distance         = r.total_distance
-    })
+    const spine = []
+    const end = new Date()
+    for (let i = days - 1; i >= 0; i -= 1) {
+      const d = new Date(end)
+      d.setDate(d.getDate() - i)
+      const key = d.toISOString().slice(0, 10)
+      spine.push(key)
+      map[key] = { session_date: key }
+    }
 
-    // WHOOP recovery — HRV, recovery score, resting HR, strain
-    whoopRows.forEach(r => {
-      const d = r.session_date || r.calendar_date
-      if (!map[d]) map[d] = { session_date: d }
-      map[d].hrv_rmssd_milli    = r.hrv_rmssd_milli
-      map[d].recovery_score     = r.recovery_score
-      map[d].resting_heart_rate = r.resting_heart_rate
-      map[d].cycle_strain       = r.cycle_strain
-    })
-
-    // ACWR trend — acute load, chronic load, ACWR ratio
+    // ACWR trend first — supplies chronic/acute/acwr on every calendar day
     acwrTrend.forEach(r => {
       const d = r.session_date
+      if (!d) return
       if (!map[d]) map[d] = { session_date: d }
-      map[d].acwr         = r.acwr
-      map[d].acute_load   = r.acute_load
+      map[d].acwr = r.acwr
+      map[d].acute_load = r.acute_load
       map[d].chronic_load = r.chronic_load
     })
 
-    // WHOOP sleep — sleep performance %
+    catapultRows.forEach(r => {
+      const d = r.session_date || r.calendar_date
+      if (!d) return
+      if (!map[d]) map[d] = { session_date: d }
+      map[d].total_player_load = r.total_player_load
+      map[d].player_load_per_minute = r.player_load_per_minute
+      map[d].high_jump_count = r.high_jump_count
+      map[d].total_distance = r.total_distance
+    })
+
+    whoopRows.forEach(r => {
+      const d = r.session_date || r.calendar_date
+      if (!d) return
+      if (!map[d]) map[d] = { session_date: d }
+      map[d].hrv_rmssd_milli = r.hrv_rmssd_milli
+      map[d].recovery_score = r.recovery_score
+      map[d].resting_heart_rate = r.resting_heart_rate
+      map[d].cycle_strain = r.cycle_strain
+    })
+
     sleepData.forEach(r => {
       const d = r.session_date || r.calendar_date
+      if (!d) return
       if (!map[d]) map[d] = { session_date: d }
       map[d].sleep_performance_percentage = r.sleep_performance_percentage
     })
 
-    return Object.values(map).sort((a, b) => (a.session_date < b.session_date ? -1 : 1))
-  }, [summary, acwrTrend, sleepData])
+    return spine.map(d => map[d]).filter(Boolean)
+  }, [summary, acwrTrend, sleepData, days, catapultRows, whoopRows])
 
   // Metric options for dropdowns (exclude whichever is selected on the other axis)
   const metricOptions = DUAL_METRICS.map(m => ({ value: m.key, label: m.label }))
-  const primaryOptions   = metricOptions.filter(o => o.value !== secondaryMetric)
-  const secondaryOptions = [{ value: '', label: 'None' }, ...metricOptions.filter(o => o.value !== primaryMetric)]
+  const primaryOptions = metricOptions.filter(o => o.value !== secondaryMetric && o.value !== tertiaryMetric)
+  const secondaryOptions = [
+    { value: '', label: 'None' },
+    ...metricOptions.filter(o => o.value !== primaryMetric && o.value !== tertiaryMetric),
+  ]
+  const tertiaryOptions = [
+    { value: '', label: 'None' },
+    ...metricOptions.filter(o => o.value !== primaryMetric && o.value !== secondaryMetric),
+  ]
 
   const pm = DUAL_METRICS.find(m => m.key === primaryMetric)
   const sm = DUAL_METRICS.find(m => m.key === secondaryMetric)
+  const tm = DUAL_METRICS.find(m => m.key === tertiaryMetric)
 
   const toggleMetric = (id) => {
     setActiveMetrics(prev =>
       prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
     )
-  }
-
-  const recoveryStatus = (score) => {
-    if (score == null) return { label: 'No data', cls: 'badge-gray' }
-    if (score >= 67) return { label: 'Good',    cls: 'badge-green' }
-    if (score >= 34) return { label: 'Monitor', cls: 'badge-amber' }
-    return              { label: 'Low',     cls: 'badge-red' }
-  }
-
-  const acwrBadge = (status, value) => {
-    const cls = { green: 'badge-green', amber: 'badge-amber', red: 'badge-red', gray: 'badge-gray' }[status] || 'badge-gray'
-    return { cls, label: value != null ? value.toFixed(2) : '—' }
   }
 
   return (
@@ -314,13 +323,12 @@ export default function MainDashboard() {
         </div>
       )}
 
-      {/* ── Dual-Axis Configurable Chart ── */}
+      {/* ── Custom chart builder (3 axes) ── */}
       {!summaryLoading && (
         <div className="card" style={{ marginBottom: '20px' }}>
-          {/* Header row with dropdowns */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Primary Axis:</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Left axis:</span>
               <SelectDropdown
                 options={primaryOptions}
                 value={primaryMetric}
@@ -329,7 +337,7 @@ export default function MainDashboard() {
               />
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Secondary Axis:</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Right A:</span>
               <SelectDropdown
                 options={secondaryOptions}
                 value={secondaryMetric}
@@ -337,25 +345,35 @@ export default function MainDashboard() {
                 minWidth={160}
               />
             </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Right B:</span>
+              <SelectDropdown
+                options={tertiaryOptions}
+                value={tertiaryMetric}
+                onChange={setTertiaryMetric}
+                minWidth={160}
+              />
+            </div>
           </div>
 
-          {/* Dynamic title */}
           <div style={{ marginBottom: '4px' }}>
             <span style={{ fontSize: '14px', fontWeight: 600 }}>
-              {pm?.label}{sm ? ` vs ${sm.label}` : ''}
+              {[pm?.label, sm?.label, tm?.label].filter(Boolean).join(' · ')}
             </span>
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
-            Overlay two metrics to identify correlations and trends.
-            {pm && <span style={{ color: pm.color }}> Left axis: {pm.label} ({pm.unit || 'AU'}). </span>}
-            {sm && <span style={{ color: sm.color }}>Right axis: {sm.label} ({sm.unit || 'AU'}).</span>}
+          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
+            Compare up to three metrics on independent scales (bars on the left, lines on the right).
+            {pm && <span style={{ color: pm.color }}> Left: {pm.label} ({pm.unit || 'AU'}). </span>}
+            {sm && <span style={{ color: sm.color }}>Right A: {sm.label} ({sm.unit || 'AU'}). </span>}
+            {tm && <span style={{ color: tm.color }}>Right B: {tm.label} ({tm.unit || 'AU'}, dashed).</span>}
           </div>
 
           <DualAxisChart
             data={mergedData}
             primaryKey={primaryMetric}
             secondaryKey={secondaryMetric || null}
-            height={300}
+            tertiaryKey={tertiaryMetric || null}
+            height={320}
           />
         </div>
       )}
@@ -387,8 +405,8 @@ export default function MainDashboard() {
                 </thead>
                 <tbody>
                   {teamSnapshot.map(a => {
-                    const status = recoveryStatus(a.recovery)
-                    const acwr   = acwrBadge(a.acwr_status, a.acwr)
+                    const status = recoveryBadge(a.recovery)
+                    const acwr = acwrBadge(a.acwr_status, a.acwr)
                     return (
                       <tr
                         key={a.athlete_internal_key}
@@ -403,9 +421,9 @@ export default function MainDashboard() {
                         <td>{a.load_per_min?.toFixed(2) ?? '—'}</td>
                         <td>{a.high_jumps ?? '—'}</td>
                         <td>{a.hrv ? `${a.hrv.toFixed(0)} ms` : '—'}</td>
-                        <td><span className={`badge ${status.cls}`}>{status.label}</span></td>
+                        <td><StatusBadge label={status.label} tone={status.tone} title={status.title} /></td>
                         <td>
-                          <span className={`badge ${acwr.cls}`}>{acwr.label}</span>
+                          <StatusBadge label={acwr.label} tone={acwr.tone} title={acwr.title} />
                           {a.acwr_status !== 'gray' && a.acute_load != null && (
                             <span style={{ fontSize: '10px', color: 'var(--text-muted)', marginLeft: '4px' }}>
                               ({a.acute_load}/{a.chronic_load})

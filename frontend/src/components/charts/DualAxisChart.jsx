@@ -22,7 +22,14 @@ export const DUAL_METRICS = [
   { key: 'sleep_performance_percentage',    label: 'Sleep Performance',  color: '#7E57C2', unit: '%'     },
 ]
 
-const CustomTooltip = ({ active, payload, label, pm, sm }) => {
+function metaForKey(key, pm, sm, tm) {
+  if (key === pm?.key) return pm
+  if (key === sm?.key) return sm
+  if (key === tm?.key) return tm
+  return DUAL_METRICS.find(m => m.key === key)
+}
+
+const CustomTooltip = ({ active, payload, label, pm, sm, tm }) => {
   if (!active || !payload?.length) return null
   return (
     <div style={{
@@ -31,7 +38,7 @@ const CustomTooltip = ({ active, payload, label, pm, sm }) => {
     }}>
       <p style={{ color: 'var(--text-secondary)', margin: '0 0 6px' }}>{label}</p>
       {payload.map((p, i) => {
-        const meta = p.dataKey === pm?.key ? pm : sm
+        const meta = metaForKey(p.dataKey, pm, sm, tm)
         return (
           <p key={i} style={{ color: p.color, margin: '2px 0', fontWeight: 500 }}>
             {meta?.label ?? p.name}:{' '}
@@ -45,20 +52,25 @@ const CustomTooltip = ({ active, payload, label, pm, sm }) => {
 }
 
 /**
- * DualAxisChart — bars on primary (left) Y axis, line on secondary (right) Y axis.
- * Props:
- *   data          — merged array with session_date + metric keys
- *   primaryKey    — metric key for bars
- *   secondaryKey  — metric key for line (null = line hidden)
- *   height        — chart height in px (default 280)
+ * Multi-metric chart — up to 3 independent Y axes.
+ * Primary (left): bars. Secondary & tertiary (right): lines on separate scales.
  */
-export default function DualAxisChart({ data = [], primaryKey, secondaryKey = null, height = 280 }) {
+export default function DualAxisChart({
+  data = [],
+  primaryKey,
+  secondaryKey = null,
+  tertiaryKey = null,
+  height = 280,
+}) {
   const pm = DUAL_METRICS.find(m => m.key === primaryKey)
   const sm = secondaryKey ? DUAL_METRICS.find(m => m.key === secondaryKey) : null
+  const tm = tertiaryKey ? DUAL_METRICS.find(m => m.key === tertiaryKey) : null
+
+  const rightMargin = tm ? 88 : sm ? 50 : 12
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <ComposedChart data={data} margin={{ top: 4, right: sm ? 50 : 12, bottom: 0, left: 0 }}>
+      <ComposedChart data={data} margin={{ top: 4, right: rightMargin, bottom: 0, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
         <XAxis
           dataKey="session_date"
@@ -66,32 +78,40 @@ export default function DualAxisChart({ data = [], primaryKey, secondaryKey = nu
           axisLine={false} tickLine={false}
           tickFormatter={v => v ? String(v).slice(5) : ''}
         />
-        {/* Primary (left) Y axis */}
         <YAxis
           yAxisId="primary"
           tick={{ fill: pm?.color ?? 'var(--text-muted)', fontSize: 11 }}
           axisLine={false} tickLine={false}
           width={46}
         />
-        {/* Secondary (right) Y axis — only shown when a second metric is selected */}
         {sm && (
           <YAxis
             yAxisId="secondary"
             orientation="right"
             tick={{ fill: sm.color, fontSize: 11 }}
             axisLine={false} tickLine={false}
-            width={46}
+            width={42}
           />
         )}
-        <Tooltip content={<CustomTooltip pm={pm} sm={sm} />} />
+        {tm && (
+          <YAxis
+            yAxisId="tertiary"
+            orientation="right"
+            tick={{ fill: tm.color, fontSize: 10 }}
+            axisLine={false}
+            tickLine={false}
+            width={40}
+            offset={sm ? 48 : 0}
+          />
+        )}
+        <Tooltip content={<CustomTooltip pm={pm} sm={sm} tm={tm} />} />
         <Legend
           wrapperStyle={{ fontSize: '12px', color: 'var(--text-secondary)', paddingTop: '12px' }}
           formatter={(value, entry) => {
-            const meta = entry.dataKey === pm?.key ? pm : sm
+            const meta = metaForKey(entry.dataKey, pm, sm, tm)
             return <span style={{ color: entry.color }}>{meta?.label ?? value}</span>
           }}
         />
-        {/* Bars — primary metric */}
         {pm && (
           <Bar
             yAxisId="primary"
@@ -103,7 +123,6 @@ export default function DualAxisChart({ data = [], primaryKey, secondaryKey = nu
             maxBarSize={32}
           />
         )}
-        {/* Line — secondary metric */}
         {sm && (
           <Line
             yAxisId="secondary"
@@ -114,6 +133,20 @@ export default function DualAxisChart({ data = [], primaryKey, secondaryKey = nu
             strokeWidth={2.5}
             dot={{ r: 3, fill: sm.color, strokeWidth: 0 }}
             activeDot={{ r: 5, fill: sm.color }}
+            connectNulls
+          />
+        )}
+        {tm && (
+          <Line
+            yAxisId="tertiary"
+            type="monotone"
+            dataKey={tertiaryKey}
+            name={tm.label}
+            stroke={tm.color}
+            strokeWidth={2}
+            strokeDasharray="6 3"
+            dot={{ r: 2, fill: tm.color, strokeWidth: 0 }}
+            activeDot={{ r: 4, fill: tm.color }}
             connectNulls
           />
         )}

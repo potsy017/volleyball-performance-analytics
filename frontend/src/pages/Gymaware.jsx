@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { gymawareApi } from '../services/api'
 import { useDashboard } from '../context/DashboardContext'
 import KPICard from '../components/ui/KPICard'
@@ -11,6 +11,8 @@ import DateRangePicker from '../components/ui/DateRangePicker'
 import LastSync from '../components/ui/LastSync'
 import TrendLineChart from '../components/charts/TrendLineChart'
 import VLScatterChart from '../components/charts/VLScatterChart'
+import LoadVelocityMultiProfileChart from '../components/charts/LoadVelocityMultiProfileChart'
+import LoadVelocityProgressChart from '../components/charts/LoadVelocityProgressChart'
 import { downloadCsv } from '../utils/csvExport'
 
 function PctBadge({ value }) {
@@ -21,9 +23,25 @@ function PctBadge({ value }) {
 
 export default function Gymaware() {
   const { selectedAthlete } = useDashboard()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const focusedDay = searchParams.get('day')
   const [exercise, setExercise] = useState('')
   const [days, setDays] = useState(30)
+  const [lvView, setLvView] = useState('profile') // profile | progress
+  const [lvSessionLimit, setLvSessionLimit] = useState('recent4')
+  const [lvExtrapolate, setLvExtrapolate] = useState(true)
+  const [lvShowPb, setLvShowPb] = useState(true)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (days > 90) {
+      setLvExtrapolate(false)
+      setLvSessionLimit('recent4')
+    } else if (days > 30) {
+      setLvSessionLimit('recent4')
+      setLvExtrapolate(true)
+    }
+  }, [days])
 
   const athleteParam = selectedAthlete ? { athlete_key: selectedAthlete } : {}
 
@@ -56,6 +74,17 @@ export default function Gymaware() {
     enabled: !!selectedAthlete && !!exercise,
   })
 
+  const { data: loadVelocityAnalysis, isLoading: lvAnalysisLoading } = useQuery({
+    queryKey: ['load-velocity-analysis', selectedAthlete, exercise, days],
+    queryFn: () =>
+      gymawareApi.loadVelocityAnalysis({
+        athlete_key: selectedAthlete,
+        exercise,
+        days,
+      }),
+    enabled: !!selectedAthlete && !!exercise,
+  })
+
   // Latest session for scatter + derived KPIs
   const latestVL   = vlProfile[vlProfile.length - 1] ?? null
   const prevVL     = vlProfile[vlProfile.length - 2] ?? null
@@ -67,6 +96,32 @@ export default function Gymaware() {
   const avgPctPeak = latestSets.length
     ? latestSets.reduce((s, r) => s + (r.pct_of_pb_peak ?? 0), 0) / latestSets.length
     : null
+
+  const sessionProfiles = loadVelocityAnalysis?.session_profiles ?? []
+  const pbBenchmark = loadVelocityAnalysis?.pb_benchmark
+
+  const focusedSessionData = useMemo(
+    () => (focusedDay ? sessionData.filter(r => (r.session_date || r.calendar_date) === focusedDay) : sessionData),
+    [sessionData, focusedDay]
+  )
+
+  useEffect(() => {
+    if (!focusedDay) return
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const d = new Date(`${focusedDay}T00:00:00`)
+    if (Number.isNaN(d.getTime())) return
+    const needed = Math.max(1, Math.ceil((today.getTime() - d.getTime()) / 86400000) + 1)
+    if (needed > days) setDays(Math.min(365, needed))
+  }, [focusedDay, days])
+
+  const lvMaxSessions = useMemo(() => {
+    if (lvSessionLimit === 'all') return null
+    if (lvSessionLimit === 'recent3') return 3
+    if (lvSessionLimit === 'recent4') return 4
+    if (lvSessionLimit === 'recent6') return 6
+    return 4
+  }, [lvSessionLimit])
 
   return (
     <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
@@ -87,6 +142,27 @@ export default function Gymaware() {
         />
         <DateRangePicker days={days} onChange={setDays} />
       </PageHeader>
+
+      {focusedDay && (
+        <div className="card" style={{ marginBottom: '12px', padding: '10px 12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+              Focused day: <strong style={{ color: 'var(--text-primary)' }}>{focusedDay}</strong>. Session table is filtered to this date.
+            </div>
+            <button
+              type="button"
+              className="toggle-btn"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams)
+                next.delete('day')
+                setSearchParams(next, { replace: true })
+              }}
+            >
+              Clear day focus
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
@@ -113,6 +189,99 @@ export default function Gymaware() {
             ]}
             height={220}
           />
+        </div>
+      )}
+
+      {/* Load–velocity: one line per session */}
+      {selectedAthlete && exercise && (
+        <div className="card" style={{ marginBottom: '20px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>
+            Load–velocity profile — {exercise}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', marginBottom: '14px' }}>
+            <div className="toggle-group">
+              <button
+                type="button"
+                className={`toggle-btn ${lvView === 'profile' ? 'active' : ''}`}
+                onClick={() => setLvView('profile')}
+              >
+                Load–velocity
+              </button>
+              <button
+                type="button"
+                className={`toggle-btn ${lvView === 'progress' ? 'active' : ''}`}
+                onClick={() => setLvView('progress')}
+              >
+                Progress over time
+              </button>
+            </div>
+            {lvView === 'profile' && (
+              <>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Sessions shown:</span>
+                <div className="toggle-group">
+                  {[
+                    { id: 'recent3', label: 'Last 3' },
+                    { id: 'recent4', label: 'Last 4' },
+                    { id: 'recent6', label: 'Last 6' },
+                    { id: 'all', label: 'All' },
+                  ].map(({ id, label }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className={`toggle-btn ${lvSessionLimit === id ? 'active' : ''}`}
+                      onClick={() => setLvSessionLimit(id)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className={`toggle-btn ${lvExtrapolate ? 'active' : ''}`}
+                  onClick={() => setLvExtrapolate(v => !v)}
+                  title="Off = connect only loads actually lifted that day (clearer for long ranges)"
+                >
+                  Extrapolate 25–105 kg
+                </button>
+                <button
+                  type="button"
+                  className={`toggle-btn ${lvShowPb ? 'active' : ''}`}
+                  onClick={() => setLvShowPb(v => !v)}
+                >
+                  PB benchmark
+                </button>
+              </>
+            )}
+          </div>
+
+          {sessionProfiles.length > 0 && (
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px' }}>
+              {sessionProfiles.length} training date{sessionProfiles.length !== 1 ? 's' : ''} in the last {days} days.
+              {days > 90 && lvView === 'profile' && (
+                <> For 3–6 month ranges, use <strong>Progress over time</strong> or limit to last 3–4 sessions.</>
+              )}
+            </p>
+          )}
+
+          {lvAnalysisLoading ? (
+            <LoadingSpinner message="Building load–velocity profiles…" />
+          ) : lvView === 'progress' ? (
+            <LoadVelocityProgressChart
+              sessionProfiles={sessionProfiles}
+              pbBenchmark={pbBenchmark}
+              height={300}
+            />
+          ) : (
+            <LoadVelocityMultiProfileChart
+              sessionProfiles={sessionProfiles}
+              pbBenchmark={pbBenchmark}
+              maxSessions={lvMaxSessions}
+              extrapolate={lvExtrapolate}
+              showPb={lvShowPb}
+              connectObservedOnly={!lvExtrapolate}
+              height={440}
+            />
+          )}
         </div>
       )}
 
@@ -258,7 +427,7 @@ export default function Gymaware() {
       <div className="card" style={{ marginBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ fontSize: '13px', fontWeight: 500 }}>Session summary (set by set)</div>
-          <button className="toggle-btn" onClick={() => downloadCsv(sessionData,
+          <button className="toggle-btn" onClick={() => downloadCsv(focusedSessionData,
             'gymaware-sessions.csv',
             ['session_date','athlete_display_name','exercise_name','bar_weight','rep_count',
              'todays_mean_velocity','todays_peak_velocity','pct_of_pb_mean','pct_of_pb_peak',
@@ -279,7 +448,7 @@ export default function Gymaware() {
                 </tr>
               </thead>
               <tbody>
-                {sessionData.slice(0, 100).map((r, i) => (
+                {focusedSessionData.slice(0, 100).map((r, i) => (
                   <tr key={i}>
                     <td style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>{r.session_date || r.calendar_date}</td>
                     {!selectedAthlete && <td style={{ fontWeight: 500 }}>{r.athlete_display_name}</td>}
