@@ -114,8 +114,8 @@ def get_load_trend(
     )
     if athlete_key:
         query = query.eq("athlete_internal_key", athlete_key)
-
     rows = query.execute().data
+    # Fetch jump counts for same athlete/date range and merge
     jump_q = (
         client.table("silver_catapult_jump_session")
         .select("athlete_internal_key, calendar_date, high_jump_event_count")
@@ -123,15 +123,14 @@ def get_load_trend(
     )
     if athlete_key:
         jump_q = jump_q.eq("athlete_internal_key", athlete_key)
-        jump_lookup = {
-            (r["athlete_internal_key"], r["calendar_date"]): r["high_jump_event_count"]
+    jump_lookup = {
+        (r["athlete_internal_key"], r["calendar_date"]): r["high_jump_event_count"]
         for r in (jump_q.execute().data or [])
     }
     for r in rows:
         r["high_jump_count"] = jump_lookup.get(
             (r["athlete_internal_key"], r["calendar_date"])
         )
-        r["session_date"] = r.get("calendar_date")
     return rows
 
 

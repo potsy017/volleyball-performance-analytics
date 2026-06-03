@@ -1,109 +1,148 @@
-import { useEffect, useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { catapultApi } from '../services/api'
-import { useDashboard } from '../context/DashboardContext'
-import KPICard from '../components/ui/KPICard'
-import PageHeader from '../components/ui/PageHeader'
-import LoadingSpinner from '../components/ui/LoadingSpinner'
-import SelectDropdown from '../components/ui/SelectDropdown'
-import DateRangePicker from '../components/ui/DateRangePicker'
-import LastSync from '../components/ui/LastSync'
-import ComboChart from '../components/charts/ComboChart'
-import TrendLineChart from '../components/charts/TrendLineChart'
-import { downloadCsv } from '../utils/csvExport'
+import { useEffect, useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { catapultApi } from "../services/api";
+import { useDashboard } from "../context/DashboardContext";
+import KPICard from "../components/ui/KPICard";
+import PageHeader from "../components/ui/PageHeader";
+import LoadingSpinner from "../components/ui/LoadingSpinner";
+import SelectDropdown from "../components/ui/SelectDropdown";
+import DateRangePicker from "../components/ui/DateRangePicker";
+import LastSync from "../components/ui/LastSync";
+import ComboChart from "../components/charts/ComboChart";
+import TrendLineChart from "../components/charts/TrendLineChart";
+import { downloadCsv } from "../utils/csvExport";
 
 export default function Catapult() {
-  const { selectedAthlete } = useDashboard()
-  const [searchParams, setSearchParams] = useSearchParams()
-  const focusedDay = searchParams.get('day')
-  const [days, setDays] = useState(14)
-  const navigate = useNavigate()
-  const [activity, setActivity] = useState('')
-  const [selectedRowKey, setSelectedRowKey] = useState(null)
+  const { selectedAthlete } = useDashboard();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const focusedDay = searchParams.get("day");
+  const [days, setDays] = useState(14);
+  const navigate = useNavigate();
+  const [activity, setActivity] = useState("");
+  const [selectedRowKey, setSelectedRowKey] = useState(null);
 
   // Reset activity filter when athlete changes
-  useEffect(() => { setActivity('') }, [selectedAthlete])
+  useEffect(() => {
+    setActivity("");
+  }, [selectedAthlete]);
 
   const params = {
     days,
     ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}),
     ...(activity ? { activity } : {}),
-  }
+  };
 
   const { data: sessions = [], isLoading } = useQuery({
-    queryKey: ['cat-sessions', params],
+    queryKey: ["cat-sessions", params],
     queryFn: () => catapultApi.sessions(params),
-  })
+  });
 
   const { data: activities = [] } = useQuery({
-    queryKey: ['cat-activities', selectedAthlete],
-    queryFn: () => catapultApi.activities(selectedAthlete ? { athlete_key: selectedAthlete } : {}),
-  })
+    queryKey: ["cat-activities", selectedAthlete],
+    queryFn: () =>
+      catapultApi.activities(
+        selectedAthlete ? { athlete_key: selectedAthlete } : {},
+      ),
+  });
 
   const { data: trend = [] } = useQuery({
-    queryKey: ['cat-trend', { days, athlete_key: selectedAthlete }],
-    queryFn: () => catapultApi.loadTrend({ days, ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}) }),
-  })
+    queryKey: ["cat-trend", { days, athlete_key: selectedAthlete }],
+    queryFn: () =>
+      catapultApi.loadTrend({
+        days,
+        ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}),
+      }),
+  });
 
   const { data: acwrTrend = [] } = useQuery({
-    queryKey: ['acwr-trend', { days, athlete_key: selectedAthlete }],
-    queryFn: () => catapultApi.acwrTrend({ days, ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}) }),
-  })
+    queryKey: ["acwr-trend", { days, athlete_key: selectedAthlete }],
+    queryFn: () =>
+      catapultApi.acwrTrend({
+        days,
+        ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}),
+      }),
+  });
 
-  const latestAcwrRow  = acwrTrend.length ? acwrTrend[acwrTrend.length - 1] : null
-  const latestAcwr     = latestAcwrRow?.acwr ?? null
-  const latestAcute    = latestAcwrRow?.acute_load ?? null
-  const latestChronic  = latestAcwrRow?.chronic_load ?? null
-  const acwrColor      = latestAcwr == null ? 'var(--text-secondary)'
-    : latestAcwr > 1.5 || latestAcwr < 0.5 ? '#F44336'
-    : latestAcwr > 1.4 || latestAcwr < 0.8 ? '#F5C400'
-    : '#4CAF50'
-
-  const latest = sessions[0] ?? {}
+  const latestAcwrRow = acwrTrend.length
+    ? acwrTrend[acwrTrend.length - 1]
+    : null;
+  const latestAcwr = latestAcwrRow?.acwr ?? null;
+  const latestAcute = latestAcwrRow?.acute_load ?? null;
+  const latestChronic = latestAcwrRow?.chronic_load ?? null;
+  const acwrColor =
+    latestAcwr == null
+      ? "var(--text-secondary)"
+      : latestAcwr > 1.5 || latestAcwr < 0.5
+        ? "#F44336"
+        : latestAcwr > 1.4 || latestAcwr < 0.8
+          ? "#F5C400"
+          : "#4CAF50";
+  const latest = sessions[0] ?? {};
+  const latestWithJumps = sessions.find((r) => r.high_jump_count != null) ?? {};
   const avgLoad = sessions.length
-    ? sessions.reduce((s, r) => s + (r.total_player_load ?? 0), 0) / sessions.length
-    : null
-  const avgJumps = sessions.length
-    ? sessions.reduce((s, r) => s + (r.high_jump_count ?? 0), 0) / sessions.length
-    : null
+    ? sessions.reduce((s, r) => s + (r.total_player_load ?? 0), 0) /
+      sessions.length
+    : null;
+  const jumpSessions = sessions.filter((r) => r.high_jump_count != null);
+  const avgJumps = jumpSessions.length
+    ? jumpSessions.reduce((s, r) => s + r.high_jump_count, 0) /
+      jumpSessions.length
+    : null;
 
   const focusedSessions = useMemo(
-    () => (focusedDay ? sessions.filter(r => (r.session_date || r.calendar_date) === focusedDay) : sessions),
-    [sessions, focusedDay]
-  )
+    () =>
+      focusedDay
+        ? sessions.filter(
+            (r) => (r.session_date || r.calendar_date) === focusedDay,
+          )
+        : sessions,
+    [sessions, focusedDay],
+  );
 
   const selectedSession = useMemo(() => {
-    if (!selectedRowKey) return null
-    return sessions.find(r => rowKey(r) === selectedRowKey) ?? null
-  }, [sessions, selectedRowKey])
+    if (!selectedRowKey) return null;
+    return sessions.find((r) => rowKey(r) === selectedRowKey) ?? null;
+  }, [sessions, selectedRowKey]);
 
   useEffect(() => {
-    if (!focusedDay) return
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const d = new Date(`${focusedDay}T00:00:00`)
-    if (Number.isNaN(d.getTime())) return
-    const needed = Math.max(1, Math.ceil((today.getTime() - d.getTime()) / 86400000) + 1)
-    if (needed > days) setDays(Math.min(365, needed))
-  }, [focusedDay, days])
+    if (!focusedDay) return;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(`${focusedDay}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return;
+    const needed = Math.max(
+      1,
+      Math.ceil((today.getTime() - d.getTime()) / 86400000) + 1,
+    );
+    if (needed > days) setDays(Math.min(365, needed));
+  }, [focusedDay, days]);
 
   function rowKey(r) {
-    return `${r.session_date || r.calendar_date}|${r.activity_name}|${r.athlete_internal_key}`
+    return `${r.session_date || r.calendar_date}|${r.activity_name}|${r.athlete_internal_key}`;
   }
 
   function handleRowClick(r) {
-    const key = rowKey(r)
-    setSelectedRowKey(prev => (prev === key ? null : key))
+    const key = rowKey(r);
+    setSelectedRowKey((prev) => (prev === key ? null : key));
   }
 
   return (
-    <div className="page-enter" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
-      <PageHeader title="Catapult" subtitle="Player load, high jumps & distance per session">
+    <div
+      className="page-enter"
+      style={{ padding: "24px", maxWidth: "1400px", margin: "0 auto" }}
+    >
+      <PageHeader
+        title="Catapult"
+        subtitle="Player load, high jumps & distance per session"
+      >
         <LastSync data={sessions} />
         {selectedAthlete && (
-          <button className="toggle-btn" onClick={() => navigate('/report')}
-            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <button
+            className="toggle-btn"
+            onClick={() => navigate("/report")}
+            style={{ display: "flex", alignItems: "center", gap: "5px" }}
+          >
             🖨 Report
           </button>
         )}
@@ -119,45 +158,140 @@ export default function Catapult() {
 
       {/* Selected session spotlight */}
       {selectedSession && (
-        <div className="card" style={{
-          marginBottom: '16px', padding: '14px 16px',
-          border: '1px solid rgba(200,230,0,0.35)',
-          background: 'rgba(200,230,0,0.04)',
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <div
+          className="card"
+          style={{
+            marginBottom: "16px",
+            padding: "14px 16px",
+            border: "1px solid rgba(200,230,0,0.35)",
+            background: "rgba(200,230,0,0.04)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "12px",
+            }}
+          >
             <div>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--primary)' }}>Selected session:</span>
-              <span style={{ fontSize: '13px', color: 'var(--text-primary)', marginLeft: '8px' }}>
+              <span
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  color: "var(--primary)",
+                }}
+              >
+                Selected session:
+              </span>
+              <span
+                style={{
+                  fontSize: "13px",
+                  color: "var(--text-primary)",
+                  marginLeft: "8px",
+                }}
+              >
                 {selectedSession.session_date || selectedSession.calendar_date}
               </span>
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', marginLeft: '10px' }}>
+              <span
+                style={{
+                  fontSize: "12px",
+                  color: "var(--text-secondary)",
+                  marginLeft: "10px",
+                }}
+              >
                 {selectedSession.activity_name}
               </span>
               {!selectedAthlete && selectedSession.athlete_display_name && (
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '10px' }}>
+                <span
+                  style={{
+                    fontSize: "12px",
+                    color: "var(--text-muted)",
+                    marginLeft: "10px",
+                  }}
+                >
                   · {selectedSession.athlete_display_name}
                 </span>
               )}
             </div>
-            <button type="button" className="toggle-btn" onClick={() => setSelectedRowKey(null)}>
+            <button
+              type="button"
+              className="toggle-btn"
+              onClick={() => setSelectedRowKey(null)}
+            >
               ✕ Clear
             </button>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '10px' }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+              gap: "10px",
+            }}
+          >
             {[
-              { label: 'Player Load',  value: selectedSession.total_player_load?.toFixed(0),     color: '#4CAF50' },
-              { label: 'Load / min',   value: selectedSession.player_load_per_minute?.toFixed(2), color: '#C8E600' },
-              { label: 'High Jumps',   value: selectedSession.high_jump_count,                    color: '#F5C400' },
-              { label: 'Total Jumps',  value: selectedSession.session_jump_count,                 color: 'var(--text-secondary)' },
-              { label: 'Distance (m)', value: selectedSession.total_distance?.toFixed(0),         color: '#2196F3' },
-              { label: 'Field Time',   value: selectedSession.field_time != null ? `${(selectedSession.field_time / 60).toFixed(0)} min` : null, color: 'var(--text-secondary)' },
+              {
+                label: "Player Load",
+                value: selectedSession.total_player_load?.toFixed(0),
+                color: "#4CAF50",
+              },
+              {
+                label: "Load / min",
+                value: selectedSession.player_load_per_minute?.toFixed(2),
+                color: "#C8E600",
+              },
+              {
+                label: "High Jumps",
+                value: selectedSession.high_jump_count,
+                color: "#F5C400",
+              },
+              {
+                label: "Total Jumps",
+                value: selectedSession.session_jump_count,
+                color: "var(--text-secondary)",
+              },
+              {
+                label: "Distance (m)",
+                value: selectedSession.total_distance?.toFixed(0),
+                color: "#2196F3",
+              },
+              {
+                label: "Field Time",
+                value:
+                  selectedSession.field_time != null
+                    ? `${(selectedSession.field_time / 60).toFixed(0)} min`
+                    : null,
+                color: "var(--text-secondary)",
+              },
             ].map(({ label, value, color }) => (
-              <div key={label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '8px 12px' }}>
-                <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
+              <div
+                key={label}
+                style={{
+                  background: "rgba(255,255,255,0.04)",
+                  borderRadius: "8px",
+                  padding: "8px 12px",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "10px",
+                    color: "var(--text-muted)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                    marginBottom: "4px",
+                  }}
+                >
                   {label}
                 </div>
-                <div style={{ fontSize: '16px', fontWeight: 700, color: value != null ? color : 'var(--text-muted)' }}>
-                  {value ?? '—'}
+                <div
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: 700,
+                    color: value != null ? color : "var(--text-muted)",
+                  }}
+                >
+                  {value ?? "—"}
                 </div>
               </div>
             ))}
@@ -167,130 +301,341 @@ export default function Catapult() {
 
       {/* Focused day banner */}
       {focusedDay && !selectedSession && (
-        <div className="card" style={{ marginBottom: '12px', padding: '10px 12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-              Focused day: <strong style={{ color: 'var(--text-primary)' }}>{focusedDay}</strong>. Session log below is filtered to this date.
+        <div
+          className="card"
+          style={{ marginBottom: "12px", padding: "10px 12px" }}
+        >
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "10px",
+            }}
+          >
+            <div style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+              Focused day:{" "}
+              <strong style={{ color: "var(--text-primary)" }}>
+                {focusedDay}
+              </strong>
+              . Session log below is filtered to this date.
             </div>
-            <button type="button" className="toggle-btn" onClick={() => {
-              const next = new URLSearchParams(searchParams)
-              next.delete('day')
-              setSearchParams(next, { replace: true })
-            }}>
+            <button
+              type="button"
+              className="toggle-btn"
+              onClick={() => {
+                const next = new URLSearchParams(searchParams);
+                next.delete("day");
+                setSearchParams(next, { replace: true });
+              }}
+            >
               Clear day focus
             </button>
           </div>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', marginBottom: '20px' }}>
-        <KPICard label="Player Load" value={latest.total_player_load} decimals={0} sub="last session" />
-        <KPICard label="Load / min" value={latest.player_load_per_minute} decimals={2} sub="last session" color="#C8E600" />
-        <KPICard label="High Jumps" value={latest.high_jump_count} decimals={0} sub="last session" color="#F5C400" />
-        <KPICard label="Total Distance" value={latest.total_distance} unit="m" decimals={0} sub="last session" color="#2196F3" />
-        <KPICard label="Avg Player Load" value={avgLoad} decimals={0} sub={`${days}-day avg`} color="var(--text-secondary)" />
-        <KPICard label="Avg High Jumps" value={avgJumps} decimals={0} sub={`${days}-day avg`} color="var(--text-secondary)" />
-        <KPICard label="Acute Load" value={latestAcute} decimals={1} color="#F5C400" sub="7-day avg AU/day" />
-        <KPICard label="Chronic Load" value={latestChronic} decimals={1} color="#2196F3" sub="28-day avg AU/day" />
-        <KPICard label="ACWR" value={latestAcwr} decimals={2} color={acwrColor} sub="acute ÷ chronic" />
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: "12px",
+          marginBottom: "20px",
+        }}
+      >
+        <KPICard
+          label="Player Load"
+          value={latest.total_player_load}
+          decimals={0}
+          sub="last session"
+        />
+        <KPICard
+          label="Load / min"
+          value={latest.player_load_per_minute}
+          decimals={2}
+          sub="last session"
+          color="#C8E600"
+        />
+        <KPICard
+          label="High Jumps"
+          value={latestWithJumps.high_jump_count}
+          decimals={0}
+          sub={
+            latestWithJumps.session_date || latestWithJumps.calendar_date
+              ? `latest · ${latestWithJumps.session_date || latestWithJumps.calendar_date}`
+              : "last session"
+          }
+          color="#F5C400"
+        />
+        <KPICard
+          label="Total Distance"
+          value={latest.total_distance}
+          unit="m"
+          decimals={0}
+          sub="last session"
+          color="#2196F3"
+        />
+        <KPICard
+          label="Avg Player Load"
+          value={avgLoad}
+          decimals={0}
+          sub={`${days}-day avg`}
+          color="var(--text-secondary)"
+        />
+        <KPICard
+          label="Avg High Jumps"
+          value={avgJumps}
+          decimals={0}
+          sub={`${days}-day avg`}
+          color="var(--text-secondary)"
+        />
+        <KPICard
+          label="Acute Load"
+          value={latestAcute}
+          decimals={1}
+          color="#F5C400"
+          sub="7-day avg AU/day"
+        />
+        <KPICard
+          label="Chronic Load"
+          value={latestChronic}
+          decimals={1}
+          color="#2196F3"
+          sub="28-day avg AU/day"
+        />
+        <KPICard
+          label="ACWR"
+          value={latestAcwr}
+          decimals={2}
+          color={acwrColor}
+          sub="acute ÷ chronic"
+        />
       </div>
 
       {/* Combo chart */}
-      <div className="card" style={{ marginBottom: '16px' }}>
-        <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px', display: 'flex', justifyContent: 'space-between' }}>
+      <div className="card" style={{ marginBottom: "16px" }}>
+        <div
+          style={{
+            fontSize: "13px",
+            fontWeight: 500,
+            marginBottom: "16px",
+            display: "flex",
+            justifyContent: "space-between",
+          }}
+        >
           <span>Player Load (volume vs intensity)</span>
-          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>bars = total load · line = load/min</span>
+          <span style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
+            bars = total load · line = load/min
+          </span>
         </div>
-        {isLoading ? <LoadingSpinner /> : (
-          <ComboChart data={trend} barKey="total_player_load" lineKey="player_load_per_minute"
-            barName="Player Load" lineName="Load / min" height={240} />
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <ComboChart
+            data={trend}
+            barKey="total_player_load"
+            lineKey="player_load_per_minute"
+            barName="Player Load"
+            lineName="Load / min"
+            height={240}
+          />
         )}
       </div>
 
       {/* ACWR chart */}
       {acwrTrend.length > 0 && (
-        <div className="card" style={{ marginBottom: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-            <div style={{ fontSize: '13px', fontWeight: 500 }}>Acute:Chronic Workload Ratio (ACWR)</div>
-            <div style={{ display: 'flex', gap: '12px', fontSize: '11px' }}>
-              <span style={{ color: '#4CAF50' }}>● 0.8–1.4 green zone</span>
-              <span style={{ color: '#F5C400' }}>● 1.4–1.5 caution</span>
-              <span style={{ color: '#F44336' }}>● &gt;1.5 high risk</span>
+        <div className="card" style={{ marginBottom: "16px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              marginBottom: "4px",
+            }}
+          >
+            <div style={{ fontSize: "13px", fontWeight: 500 }}>
+              Acute:Chronic Workload Ratio (ACWR)
+            </div>
+            <div style={{ display: "flex", gap: "12px", fontSize: "11px" }}>
+              <span style={{ color: "#4CAF50" }}>● 0.8–1.4 green zone</span>
+              <span style={{ color: "#F5C400" }}>● 1.4–1.5 caution</span>
+              <span style={{ color: "#F44336" }}>● &gt;1.5 high risk</span>
             </div>
           </div>
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+          <div
+            style={{
+              fontSize: "11px",
+              color: "var(--text-secondary)",
+              marginBottom: "16px",
+            }}
+          >
             7-day avg load ÷ 28-day avg load · stay between the dashed lines
           </div>
-          <TrendLineChart data={acwrTrend} lines={[{ key: 'acwr', name: 'ACWR', color: acwrColor }]}
-            height={200} referenceLines={[
-              { value: 1.4, label: '1.4 upper', color: '#F5C400' },
-              { value: 0.8, label: '0.8 lower', color: '#F5C400' },
-            ]} />
+          <TrendLineChart
+            data={acwrTrend}
+            lines={[{ key: "acwr", name: "ACWR", color: acwrColor }]}
+            height={200}
+            referenceLines={[
+              { value: 1.4, label: "1.4 upper", color: "#F5C400" },
+              { value: 0.8, label: "0.8 lower", color: "#F5C400" },
+            ]}
+          />
         </div>
       )}
 
       {/* High jumps + distance */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "16px",
+          marginBottom: "20px",
+        }}
+      >
         <div className="card">
-          <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px' }}>High jump count</div>
-          <TrendLineChart data={trend} lines={[{ key: 'high_jump_count', name: 'High Jumps', color: '#C8E600' }]} height={200} />
+          <div
+            style={{ fontSize: "13px", fontWeight: 500, marginBottom: "16px" }}
+          >
+            High jump count
+          </div>
+          <TrendLineChart
+            data={trend}
+            lines={[
+              { key: "high_jump_count", name: "High Jumps", color: "#C8E600" },
+            ]}
+            height={200}
+          />
         </div>
         <div className="card">
-          <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px' }}>Total distance (m)</div>
-          <TrendLineChart data={trend} lines={[{ key: 'total_distance', name: 'Distance (m)', color: '#2196F3' }]} height={200} />
+          <div
+            style={{ fontSize: "13px", fontWeight: 500, marginBottom: "16px" }}
+          >
+            Total distance (m)
+          </div>
+          <TrendLineChart
+            data={trend}
+            lines={[
+              { key: "total_distance", name: "Distance (m)", color: "#2196F3" },
+            ]}
+            height={200}
+          />
         </div>
       </div>
 
       {/* Session log */}
       <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 500 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: "16px",
+          }}
+        >
+          <div style={{ fontSize: "13px", fontWeight: 500 }}>
             Session log
-            <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px', fontWeight: 400 }}>
+            <span
+              style={{
+                fontSize: "11px",
+                color: "var(--text-muted)",
+                marginLeft: "8px",
+                fontWeight: 400,
+              }}
+            >
               Click a row to select
             </span>
           </div>
-          <button className="toggle-btn" onClick={() => downloadCsv(focusedSessions,
-            'catapult-sessions.csv',
-            ['session_date','athlete_display_name','activity_name','total_player_load',
-             'player_load_per_minute','high_jump_count','session_jump_count','total_distance','field_time']
-          )}>⬇ Export CSV</button>
+          <button
+            className="toggle-btn"
+            onClick={() =>
+              downloadCsv(focusedSessions, "catapult-sessions.csv", [
+                "session_date",
+                "athlete_display_name",
+                "activity_name",
+                "total_player_load",
+                "player_load_per_minute",
+                "high_jump_count",
+                "session_jump_count",
+                "total_distance",
+                "field_time",
+              ])
+            }
+          >
+            ⬇ Export CSV
+          </button>
         </div>
-        {isLoading ? <LoadingSpinner /> : (
-          <div style={{ overflowX: 'auto' }}>
+        {isLoading ? (
+          <LoadingSpinner />
+        ) : (
+          <div style={{ overflowX: "auto" }}>
             <table className="vpa-table">
               <thead>
                 <tr>
                   <th>Date</th>
                   {!selectedAthlete && <th>Athlete</th>}
-                  <th>Activity</th><th>Player Load</th><th>Load/min</th>
-                  <th>High Jumps</th><th>Total Jumps</th><th>Distance (m)</th><th>Field Time</th>
+                  <th>Activity</th>
+                  <th>Player Load</th>
+                  <th>Load/min</th>
+                  <th>High Jumps</th>
+                  <th>Total Jumps</th>
+                  <th>Distance (m)</th>
+                  <th>Field Time</th>
                 </tr>
               </thead>
               <tbody>
                 {focusedSessions.map((r, i) => {
-                  const key = rowKey(r)
-                  const isSelected = selectedRowKey === key
+                  const key = rowKey(r);
+                  const isSelected = selectedRowKey === key;
                   return (
-                    <tr key={i} onClick={() => handleRowClick(r)} style={{
-                      cursor: 'pointer',
-                      background: isSelected ? 'rgba(200,230,0,0.08)' : undefined,
-                      borderLeft: isSelected ? '3px solid var(--primary)' : '3px solid transparent',
-                      transition: 'background 0.15s',
-                    }}>
-                      <td style={{ color: isSelected ? 'var(--primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400 }}>
+                    <tr
+                      key={i}
+                      onClick={() => handleRowClick(r)}
+                      style={{
+                        cursor: "pointer",
+                        background: isSelected
+                          ? "rgba(200,230,0,0.08)"
+                          : undefined,
+                        borderLeft: isSelected
+                          ? "3px solid var(--primary)"
+                          : "3px solid transparent",
+                        transition: "background 0.15s",
+                      }}
+                    >
+                      <td
+                        style={{
+                          color: isSelected
+                            ? "var(--primary)"
+                            : "var(--text-secondary)",
+                          whiteSpace: "nowrap",
+                          fontWeight: isSelected ? 600 : 400,
+                        }}
+                      >
                         {r.session_date || r.calendar_date}
                       </td>
-                      {!selectedAthlete && <td style={{ fontWeight: 500 }}>{r.athlete_display_name}</td>}
-                      <td style={{ fontWeight: isSelected ? 600 : 400 }}>{r.activity_name ?? '—'}</td>
-                      <td>{r.total_player_load?.toFixed(0) ?? '—'}</td>
-                      <td style={{ color: '#C8E600', fontWeight: 500 }}>{r.player_load_per_minute?.toFixed(2) ?? '—'}</td>
-                      <td style={{ color: '#F5C400' }}>{r.high_jump_count ?? '—'}</td>
-                      <td>{r.session_jump_count ?? '—'}</td>
-                      <td>{r.total_distance?.toFixed(0) ?? '—'}</td>
-                      <td>{r.field_time != null ? (r.field_time / 60).toFixed(0) + ' min' : '—'}</td>
+                      {!selectedAthlete && (
+                        <td style={{ fontWeight: 500 }}>
+                          {r.athlete_display_name}
+                        </td>
+                      )}
+                      <td style={{ fontWeight: isSelected ? 600 : 400 }}>
+                        {r.activity_name ?? "—"}
+                      </td>
+                      <td>{r.total_player_load?.toFixed(0) ?? "—"}</td>
+                      <td style={{ color: "#C8E600", fontWeight: 500 }}>
+                        {r.player_load_per_minute?.toFixed(2) ?? "—"}
+                      </td>
+                      <td style={{ color: "#F5C400" }}>
+                        {r.high_jump_count ?? "—"}
+                      </td>
+                      <td>{r.session_jump_count ?? "—"}</td>
+                      <td>{r.total_distance?.toFixed(0) ?? "—"}</td>
+                      <td>
+                        {r.field_time != null
+                          ? (r.field_time / 60).toFixed(0) + " min"
+                          : "—"}
+                      </td>
                     </tr>
-                  )
+                  );
                 })}
               </tbody>
             </table>
@@ -298,5 +643,5 @@ export default function Catapult() {
         )}
       </div>
     </div>
-  )
+  );
 }
