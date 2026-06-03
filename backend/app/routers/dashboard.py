@@ -50,6 +50,25 @@ def get_kpis(
         "athlete_internal_key, calendar_date, total_player_load,"
         "player_load_per_minute, field_time, high_jump_count_ima_bands_6_8",
     )
+
+    jumps = _q(
+        "silver_catapult_jump_session",
+        "athlete_internal_key, calendar_date, high_jump_event_count",
+    )
+    
+    jump_lookup = {
+        (r["athlete_internal_key"], str(r["calendar_date"])): r["high_jump_event_count"]
+        for r in jumps
+    }
+
+
+    for r in cat:
+        r["high_jump_count_ima_bands_6_8"] = jump_lookup.get(
+            (r["athlete_internal_key"], str(r["calendar_date"]))
+        )
+
+
+
     # Try SCORED first; fall back to any available row if none
     rec = _q(
         "silver_whoop_recovery",
@@ -63,12 +82,20 @@ def get_kpis(
             "athlete_internal_key, calendar_date, hrv_rmssd_milli,"
             "resting_heart_rate, recovery_score",
         )
+        
 
     # Latest session row (most recent by date)
     cat_sorted = sorted(cat, key=lambda x: x.get("calendar_date") or "", reverse=True)
     rec_sorted = sorted(rec, key=lambda x: x.get("calendar_date") or "", reverse=True)
     latest_cat = cat_sorted[0] if cat_sorted else {}
     latest_rec = rec_sorted[0] if rec_sorted else {}
+
+
+        # Find latest cat row that actually has jump data
+    latest_cat_with_jumps = next(
+        (r for r in cat_sorted if r.get("high_jump_count_ima_bands_6_8") is not None),
+        {}
+    )
 
     return {
         # Period averages
@@ -86,7 +113,7 @@ def get_kpis(
         # Latest session values (used when a single athlete is selected)
         "latest_player_load":   latest_cat.get("total_player_load"),
         "latest_load_per_min":  latest_cat.get("player_load_per_minute"),
-        "latest_high_jumps":    latest_cat.get("high_jump_count_ima_bands_6_8"),
+        "latest_high_jumps": latest_cat_with_jumps.get("high_jump_count_ima_bands_6_8"),
         "latest_session_date":  latest_cat.get("calendar_date"),
         "latest_hrv":           latest_rec.get("hrv_rmssd_milli"),
         "latest_recovery":      latest_rec.get("recovery_score"),
@@ -125,13 +152,30 @@ def get_summary(
         except Exception:
             return []
 
-    cat   = _safe_q("silver_catapult_session", "catapult")
     gym   = _safe_q("silver_gymaware_summaries", "gymaware")
     whoop = _safe_q("silver_whoop_recovery", "whoop", extra_eq={"score_state": "SCORED"})
+    cat = _safe_q("silver_catapult_session", "catapult")
 
-    # Normalise jump column alias for frontend charts
+# Fetch and merge jump counts
+    try:
+        jq = client.table("silver_catapult_jump_session").select(
+            "athlete_internal_key, calendar_date, high_jump_event_count"
+        ).gte("calendar_date", since)
+        if athlete_key:
+            jq = jq.eq("athlete_internal_key", athlete_key)
+        jump_rows = jq.execute().data or []
+    except Exception:
+        jump_rows = []
+    jump_lookup = {
+        (r["athlete_internal_key"], str(r["calendar_date"])): r["high_jump_event_count"]
+        for r in jump_rows
+    }
     for r in cat:
-        r["high_jump_count"] = r.get("high_jump_count_ima_bands_6_8")
+        r["high_jump_count_ima_bands_6_8"] = jump_lookup.get(
+            (r["athlete_internal_key"], str(r["calendar_date"]))
+        )
+        r["high_jump_count"] = r["high_jump_count_ima_bands_6_8"]
+            # Normalise jump column alias for frontend charts
 
     return cat + gym + whoop
 
@@ -181,6 +225,19 @@ def get_team_snapshot():
         .execute().data
     ) or []
 
+    jump_rows = (
+        client.table("silver_catapult_jump_session")
+        .select("athlete_internal_key, calendar_date, high_jump_event_count")
+        .gte("calendar_date", since_28)
+        .order("calendar_date", desc=True)
+        .limit(5000)
+        .execute().data
+    ) or []
+
+    jump_lookup = {
+        (r["athlete_internal_key"], r["calendar_date"]): r["high_jump_event_count"]
+        for r in jump_rows
+    }
     # Build athlete registry
     seen = {}
     for r in cat:
@@ -217,7 +274,7 @@ def get_team_snapshot():
             row["last_session"] = cal
             row["player_load"]  = load
             row["load_per_min"] = r.get("player_load_per_minute")
-            row["high_jumps"]   = r.get("high_jump_count_ima_bands_6_8")
+            row["high_jumps"] = jump_lookup.get((akey, cal))
 
     # Compute ACWR for each athlete
     for akey, row in seen.items():

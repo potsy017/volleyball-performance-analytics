@@ -48,11 +48,26 @@ def get_sessions(
     if activity:
         query = query.eq("activity_name", activity)
 
+    
     rows = query.execute().data
-    # Normalise jump column name for frontend consistency
+    # Fetch jump counts for same athlete/date range and merge
+    jump_q = (
+        client.table("silver_catapult_jump_session")
+        .select("athlete_internal_key, calendar_date, high_jump_event_count")
+        .gte("calendar_date", since)
+    )
+    if athlete_key:
+        jump_q = jump_q.eq("athlete_internal_key", athlete_key)
+    jump_lookup = {
+        (r["athlete_internal_key"], r["calendar_date"]): r["high_jump_event_count"]
+        for r in (jump_q.execute().data or [])
+    }
     for r in rows:
-        r["high_jump_count"] = r.get("high_jump_count_ima_bands_6_8")
+        r["high_jump_count"] = jump_lookup.get(
+            (r["athlete_internal_key"], r["calendar_date"])
+        )
     return rows
+    
 
 
 @router.get("/activities")
@@ -101,10 +116,21 @@ def get_load_trend(
         query = query.eq("athlete_internal_key", athlete_key)
 
     rows = query.execute().data
+    jump_q = (
+        client.table("silver_catapult_jump_session")
+        .select("athlete_internal_key, calendar_date, high_jump_event_count")
+        .gte("calendar_date", since)
+    )
+    if athlete_key:
+        jump_q = jump_q.eq("athlete_internal_key", athlete_key)
+    jump_lookup = {
+        (r["athlete_internal_key"], r["calendar_date"]): r["high_jump_event_count"]
+        for r in (jump_q.execute().data or [])
+    }
     for r in rows:
-        # Expose consistent alias for charts
-        r["high_jump_count"] = r.get("high_jump_count_ima_bands_6_8")
-        # session_date alias so frontend charts that used session_date still work
+        r["high_jump_count"] = jump_lookup.get(
+            (r["athlete_internal_key"], r["calendar_date"])
+        )
         r["session_date"] = r.get("calendar_date")
     return rows
 
