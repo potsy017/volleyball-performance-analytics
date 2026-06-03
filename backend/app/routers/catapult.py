@@ -57,16 +57,26 @@ def get_sessions(
 
 @router.get("/activities")
 def get_activities(athlete_key: Optional[str] = Query(None)):
+    """Returns distinct activity names ordered by most recent first."""
     client = get_client()
     query = (
         client.table("silver_catapult_session")
-        .select("activity_name")
+        .select("activity_name, calendar_date")
         .not_is_null("activity_name")
+        .order("calendar_date", desc=True)
     )
     if athlete_key:
         query = query.eq("athlete_internal_key", athlete_key)
     res = query.execute()
-    return sorted(set(r["activity_name"] for r in res.data if r.get("activity_name")))
+    # Deduplicate preserving most-recent-first order
+    seen: set[str] = set()
+    out: list[str] = []
+    for r in res.data:
+        name = r.get("activity_name")
+        if name and name not in seen:
+            seen.add(name)
+            out.append(name)
+    return out
 
 
 @router.get("/load-trend")

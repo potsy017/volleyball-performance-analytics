@@ -20,7 +20,7 @@ export default function Catapult() {
   const [days, setDays] = useState(14)
   const navigate = useNavigate()
   const [activity, setActivity] = useState('')
-  const [selectedRowKey, setSelectedRowKey] = useState(null) // key = "date|activity|athlete"
+  const [selectedRowKey, setSelectedRowKey] = useState(null)
 
   // Reset activity filter when athlete changes
   useEffect(() => { setActivity('') }, [selectedAthlete])
@@ -36,7 +36,6 @@ export default function Catapult() {
     queryFn: () => catapultApi.sessions(params),
   })
 
-  // Fix: include selectedAthlete in queryKey so dropdown refetches on athlete change
   const { data: activities = [] } = useQuery({
     queryKey: ['cat-activities', selectedAthlete],
     queryFn: () => catapultApi.activities(selectedAthlete ? { athlete_key: selectedAthlete } : {}),
@@ -52,7 +51,6 @@ export default function Catapult() {
     queryFn: () => catapultApi.acwrTrend({ days, ...(selectedAthlete ? { athlete_key: selectedAthlete } : {}) }),
   })
 
-  // Latest ACWR row for KPI cards + traffic light colour (coach's bounds: 0.8–1.4 green)
   const latestAcwrRow  = acwrTrend.length ? acwrTrend[acwrTrend.length - 1] : null
   const latestAcwr     = latestAcwrRow?.acwr ?? null
   const latestAcute    = latestAcwrRow?.acute_load ?? null
@@ -75,7 +73,6 @@ export default function Catapult() {
     [sessions, focusedDay]
   )
 
-  // Find the currently selected row object
   const selectedSession = useMemo(() => {
     if (!selectedRowKey) return null
     return sessions.find(r => rowKey(r) === selectedRowKey) ?? null
@@ -97,7 +94,6 @@ export default function Catapult() {
 
   function handleRowClick(r) {
     const key = rowKey(r)
-    // Toggle selection — other rows stay visible, only the highlight changes
     setSelectedRowKey(prev => (prev === key ? null : key))
   }
 
@@ -130,9 +126,7 @@ export default function Catapult() {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--primary)' }}>
-                Selected session:
-              </span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--primary)' }}>Selected session:</span>
               <span style={{ fontSize: '13px', color: 'var(--text-primary)', marginLeft: '8px' }}>
                 {selectedSession.session_date || selectedSession.calendar_date}
               </span>
@@ -145,11 +139,7 @@ export default function Catapult() {
                 </span>
               )}
             </div>
-            <button
-              type="button"
-              className="toggle-btn"
-              onClick={() => setSelectedRowKey(null)}
-            >
+            <button type="button" className="toggle-btn" onClick={() => setSelectedRowKey(null)}>
               ✕ Clear
             </button>
           </div>
@@ -160,11 +150,9 @@ export default function Catapult() {
               { label: 'High Jumps',   value: selectedSession.high_jump_count,                    color: '#F5C400' },
               { label: 'Total Jumps',  value: selectedSession.session_jump_count,                 color: 'var(--text-secondary)' },
               { label: 'Distance (m)', value: selectedSession.total_distance?.toFixed(0),         color: '#2196F3' },
-              { label: 'Field Time',   value: selectedSession.field_time != null ? `${selectedSession.field_time.toFixed(0)} min` : null, color: 'var(--text-secondary)' },
+              { label: 'Field Time',   value: selectedSession.field_time != null ? `${(selectedSession.field_time / 60).toFixed(0)} min` : null, color: 'var(--text-secondary)' },
             ].map(({ label, value, color }) => (
-              <div key={label} style={{
-                background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '8px 12px',
-              }}>
+              <div key={label} style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '8px', padding: '8px 12px' }}>
                 <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '4px' }}>
                   {label}
                 </div>
@@ -177,22 +165,18 @@ export default function Catapult() {
         </div>
       )}
 
-      {/* Focused day banner (from Readiness deep-link or row click) */}
+      {/* Focused day banner */}
       {focusedDay && !selectedSession && (
         <div className="card" style={{ marginBottom: '12px', padding: '10px 12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
             <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
               Focused day: <strong style={{ color: 'var(--text-primary)' }}>{focusedDay}</strong>. Session log below is filtered to this date.
             </div>
-            <button
-              type="button"
-              className="toggle-btn"
-              onClick={() => {
-                const next = new URLSearchParams(searchParams)
-                next.delete('day')
-                setSearchParams(next, { replace: true })
-              }}
-            >
+            <button type="button" className="toggle-btn" onClick={() => {
+              const next = new URLSearchParams(searchParams)
+              next.delete('day')
+              setSearchParams(next, { replace: true })
+            }}>
               Clear day focus
             </button>
           </div>
@@ -218,18 +202,12 @@ export default function Catapult() {
           <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>bars = total load · line = load/min</span>
         </div>
         {isLoading ? <LoadingSpinner /> : (
-          <ComboChart
-            data={trend}
-            barKey="total_player_load"
-            lineKey="player_load_per_minute"
-            barName="Player Load"
-            lineName="Load / min"
-            height={240}
-          />
+          <ComboChart data={trend} barKey="total_player_load" lineKey="player_load_per_minute"
+            barName="Player Load" lineName="Load / min" height={240} />
         )}
       </div>
 
-      {/* ACWR chart with green-zone reference lines */}
+      {/* ACWR chart */}
       {acwrTrend.length > 0 && (
         <div className="card" style={{ marginBottom: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
@@ -243,39 +221,27 @@ export default function Catapult() {
           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
             7-day avg load ÷ 28-day avg load · stay between the dashed lines
           </div>
-          <TrendLineChart
-            data={acwrTrend}
-            lines={[{ key: 'acwr', name: 'ACWR', color: acwrColor }]}
-            height={200}
-            referenceLines={[
+          <TrendLineChart data={acwrTrend} lines={[{ key: 'acwr', name: 'ACWR', color: acwrColor }]}
+            height={200} referenceLines={[
               { value: 1.4, label: '1.4 upper', color: '#F5C400' },
               { value: 0.8, label: '0.8 lower', color: '#F5C400' },
-            ]}
-          />
+            ]} />
         </div>
       )}
 
-      {/* High jumps + distance trend */}
+      {/* High jumps + distance */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
         <div className="card">
           <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px' }}>High jump count</div>
-          <TrendLineChart
-            data={trend}
-            lines={[{ key: 'high_jump_count', name: 'High Jumps', color: '#C8E600' }]}
-            height={200}
-          />
+          <TrendLineChart data={trend} lines={[{ key: 'high_jump_count', name: 'High Jumps', color: '#C8E600' }]} height={200} />
         </div>
         <div className="card">
           <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px' }}>Total distance (m)</div>
-          <TrendLineChart
-            data={trend}
-            lines={[{ key: 'total_distance', name: 'Distance (m)', color: '#2196F3' }]}
-            height={200}
-          />
+          <TrendLineChart data={trend} lines={[{ key: 'total_distance', name: 'Distance (m)', color: '#2196F3' }]} height={200} />
         </div>
       </div>
 
-      {/* Session log table */}
+      {/* Session log */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ fontSize: '13px', fontWeight: 500 }}>
@@ -306,16 +272,12 @@ export default function Catapult() {
                   const key = rowKey(r)
                   const isSelected = selectedRowKey === key
                   return (
-                    <tr
-                      key={i}
-                      onClick={() => handleRowClick(r)}
-                      style={{
-                        cursor: 'pointer',
-                        background: isSelected ? 'rgba(200,230,0,0.08)' : undefined,
-                        outline: isSelected ? '1px solid rgba(200,230,0,0.35)' : undefined,
-                        transition: 'background 0.15s',
-                      }}
-                    >
+                    <tr key={i} onClick={() => handleRowClick(r)} style={{
+                      cursor: 'pointer',
+                      background: isSelected ? 'rgba(200,230,0,0.08)' : undefined,
+                      borderLeft: isSelected ? '3px solid var(--primary)' : '3px solid transparent',
+                      transition: 'background 0.15s',
+                    }}>
                       <td style={{ color: isSelected ? 'var(--primary)' : 'var(--text-secondary)', whiteSpace: 'nowrap', fontWeight: isSelected ? 600 : 400 }}>
                         {r.session_date || r.calendar_date}
                       </td>
@@ -326,7 +288,7 @@ export default function Catapult() {
                       <td style={{ color: '#F5C400' }}>{r.high_jump_count ?? '—'}</td>
                       <td>{r.session_jump_count ?? '—'}</td>
                       <td>{r.total_distance?.toFixed(0) ?? '—'}</td>
-                      <td>{r.field_time?.toFixed(0) ?? '—'} min</td>
+                      <td>{r.field_time != null ? (r.field_time / 60).toFixed(0) + ' min' : '—'}</td>
                     </tr>
                   )
                 })}
