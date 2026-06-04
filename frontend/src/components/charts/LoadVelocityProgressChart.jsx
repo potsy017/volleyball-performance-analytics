@@ -3,6 +3,7 @@ import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
+import { CHART_CONTINUITY } from './chartDefaults'
 
 const tooltipStyle = {
   background: '#1A1D24',
@@ -198,7 +199,7 @@ export default function LoadVelocityProgressChart({
             stroke={VEL_COLOR}
             strokeWidth={2}
             dot={{ r: 3, fill: VEL_COLOR }}
-            connectNulls
+            {...CHART_CONTINUITY}
             isAnimationActive={false}
           />
           {hasLmax && (
@@ -211,7 +212,7 @@ export default function LoadVelocityProgressChart({
               strokeWidth={2}
               strokeDasharray="4 3"
               dot={{ r: 4, fill: LMAX_COLOR }}
-              connectNulls
+              {...CHART_CONTINUITY}
               isAnimationActive={false}
             />
           )}

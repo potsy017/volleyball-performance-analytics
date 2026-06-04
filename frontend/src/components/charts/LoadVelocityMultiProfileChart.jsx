@@ -3,6 +3,7 @@ import {
   ComposedChart, Line, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
+import { CHART_CONTINUITY } from './chartDefaults'
 
 const SESSION_COLORS = [
   '#4CAF50', '#2196F3', '#FF9800', '#AB47BC', '#EF5350', '#26C6DA', '#F5C400', '#8D6E63',
@@ -249,6 +250,7 @@ export default function LoadVelocityMultiProfileChart({
               strokeDasharray="2 6"
               dot={false}
               isAnimationActive={false}
+              {...CHART_CONTINUITY}
             />
           )}
 
@@ -323,6 +325,7 @@ export default function LoadVelocityMultiProfileChart({
                   dot={{ r: 6, fill: s.color, fillOpacity: s.opacity, strokeWidth: 0 }}
                   legendType="line"
                   isAnimationActive={false}
+                  {...CHART_CONTINUITY}
                 />
               )
             }
@@ -338,7 +341,7 @@ export default function LoadVelocityMultiProfileChart({
                 strokeWidth={2}
                 strokeDasharray={showExtrapolated ? '6 4' : undefined}
                 dot={showExtrapolated ? false : { r: 5, fill: s.color, fillOpacity: s.opacity }}
-                connectNulls
+                {...CHART_CONTINUITY}
                 isAnimationActive={false}
                 legendType="line"
               />

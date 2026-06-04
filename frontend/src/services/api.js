@@ -26,6 +26,12 @@ export const dashboardApi = {
   summary:      (params) => api.get('/dashboard/summary',       { params }).then(r => r.data),
   kpis:         (params) => api.get('/dashboard/kpis',          { params }).then(r => r.data),
   teamSnapshot: ()       => api.get('/dashboard/team-snapshot').then(r => r.data),
+  radarMetrics: (params)  => api.get('/dashboard/radar-metrics', { params }).then(r => r.data),
+  triadRisk:    (params)  => api.get('/dashboard/triad-risk', { params }).then(r => r.data),
+  efficiencyScatter: (params) =>
+    api.get('/dashboard/efficiency-scatter', { params }).then(r => r.data),
+  dailyJumps: (params) =>
+    api.get('/dashboard/daily-jumps', { params }).then(r => r.data),
 }
 
 export const gymawareApi = {

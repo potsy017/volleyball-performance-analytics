@@ -17,9 +17,10 @@ Volleyball_Performance_Analysis/
 │   │   ├── db/supabase.py
 │   │   ├── gymaware_exercises.py
 │   │   ├── gymaware_load_velocity.py
+│   │   ├── utils/jump_metrics.py   # BMP daily total + high jump aggregates
 │   │   └── routers/
 │   │       ├── athletes.py
-│   │       ├── dashboard.py
+│   │       ├── dashboard.py   # KPIs, radar, triad, efficiency, daily-jumps
 │   │       ├── catapult.py
 │   │       ├── gymaware.py
 │   │       ├── whoop.py
@@ -31,7 +32,7 @@ Volleyball_Performance_Analysis/
     ├── src/
     │   ├── App.jsx
     │   ├── pages/            MainDashboard, Readiness, Gymaware, Catapult, Whoop, Vald, AthleteReport
-    │   ├── components/charts/
+    │   ├── components/charts/   # see docs/CHARTS.md
     │   ├── components/ui/    StatusBadge, KPICard, …
     │   └── services/api.js
     ├── package.json
@@ -80,7 +81,7 @@ Both must run for local dev. Frontend uses `/api` (Vite proxy) unless `VITE_API_
 
 | Route | Description |
 |-------|-------------|
-| `/` | Main dashboard — KPIs, team snapshot, 3-axis trends, ACWR, daily jumps |
+| `/` | Main dashboard — KPIs, team snapshot, metric toggles (load, **total jumps**, high jumps, HRV), dual/triple-axis overlay, ACWR; **athlete:** performance radar, injury-risk triad, efficiency scatter |
 | `/readiness` | Team readiness table, expandable per-athlete detail, RAG badges |
 | `/gymaware` | Strength sessions, PB, multi-session load–velocity profiles |
 | `/catapult` | GPS sessions and load trends (`?athlete=`, `?day=`) |
@@ -90,13 +91,37 @@ Both must run for local dev. Frontend uses `/api` (Vite proxy) unless `VITE_API_
 
 ---
 
+## Charts
+
+Full reference (data sources, APIs, troubleshooting): **[docs/CHARTS.md](docs/CHARTS.md)**
+
+Planned capabilities (client roadmap, not shipped): **[docs/PLANNED_FEATURES.md](docs/PLANNED_FEATURES.md)**
+
+**Main dashboard (selected athlete):**
+
+- **Performance radar** — 5/7-axis web vs 30d baseline (BMP volume & intensity, GymAware power, ACWR, optional WHOOP).
+- **Triad** — synced ACWR, deep sleep, max jump (or high-band ratio fallback).
+- **Efficiency scatter** — Catapult load vs WHOOP strain; needs both on the same day.
+
+**Jump metrics:** Total and high jumps are summed from `silver_catapult_jump_session` (BMP), not legacy IMA-only columns.
+
+**Continuity:** All line/area/radar series use `connectNulls` via `chartDefaults.js`.
+
+---
+
 ## Key API endpoints
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /api/dashboard/team-snapshot` | Team overview |
-| `GET /api/gymaware/load-velocity-analysis` | Per-session L–V profiles (25–105 kg) + PB benchmark |
+| `GET /api/dashboard/kpis` | Period + latest KPIs (incl. BMP total/high jumps) |
+| `GET /api/dashboard/summary` | Merged catapult / gymaware / whoop rows for charts |
+| `GET /api/dashboard/daily-jumps` | Dense spine: daily `total_jumps` + `high_jump_count` |
+| `GET /api/dashboard/team-snapshot` | Team table (load, jumps, ACWR, WHOOP) |
+| `GET /api/dashboard/radar-metrics` | Athlete radar inputs (requires `athlete_key`) |
+| `GET /api/dashboard/triad-risk` | Injury-risk triad series (requires `athlete_key`) |
+| `GET /api/dashboard/efficiency-scatter` | Load vs strain sessions (requires `athlete_key`) |
 | `GET /api/catapult/acwr-trend` | ACWR time series |
+| `GET /api/gymaware/load-velocity-analysis` | Per-session L–V profiles (25–105 kg) + PB benchmark |
 
 Full list: http://localhost:8000/api/docs
 

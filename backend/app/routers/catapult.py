@@ -3,13 +3,16 @@ from typing import Optional
 from datetime import date, timedelta
 from collections import defaultdict
 from app.db.supabase import get_client
+from app.utils.acwr import compute_acwr
+from app.utils.jump_metrics import attach_high_jump_counts, fetch_jump_sessions
 
 router = APIRouter(prefix="/catapult", tags=["catapult"])
 
 # Silver table column reference:
 #   calendar_date, athlete_internal_key, athlete_display_name, athlete_jersey,
 #   activity_name, total_player_load, player_load_per_minute,
-#   high_jump_count_ima_bands_6_8, total_distance, field_time
+#   high jumps → silver_catapult_jump_session.high_jump_event_count
+#   total_distance, field_time
 
 
 def _since(days: int) -> str:
@@ -50,22 +53,8 @@ def get_sessions(
 
     
     rows = query.execute().data
-    # Fetch jump counts for same athlete/date range and merge
-    jump_q = (
-        client.table("silver_catapult_jump_session")
-        .select("athlete_internal_key, calendar_date, high_jump_event_count")
-        .gte("calendar_date", since)
-    )
-    if athlete_key:
-        jump_q = jump_q.eq("athlete_internal_key", athlete_key)
-    jump_lookup = {
-        (r["athlete_internal_key"], r["calendar_date"]): r["high_jump_event_count"]
-        for r in (jump_q.execute().data or [])
-    }
-    for r in rows:
-        r["high_jump_count"] = jump_lookup.get(
-            (r["athlete_internal_key"], r["calendar_date"])
-        )
+    jump_rows = fetch_jump_sessions(client, athlete_key=athlete_key, since=since)
+    attach_high_jump_counts(rows, jump_rows)
     return rows
     
 
@@ -106,8 +95,7 @@ def get_load_trend(
         client.table("silver_catapult_session")
         .select(
             "athlete_internal_key, athlete_display_name, calendar_date,"
-            "total_player_load, player_load_per_minute,"
-            "high_jump_count_ima_bands_6_8, total_distance, field_time"
+            "total_player_load, player_load_per_minute, total_distance, field_time"
         )
         .gte("calendar_date", since)
         .order("calendar_date")
@@ -115,22 +103,10 @@ def get_load_trend(
     if athlete_key:
         query = query.eq("athlete_internal_key", athlete_key)
     rows = query.execute().data
-    # Fetch jump counts for same athlete/date range and merge
-    jump_q = (
-        client.table("silver_catapult_jump_session")
-        .select("athlete_internal_key, calendar_date, high_jump_event_count")
-        .gte("calendar_date", since)
-    )
-    if athlete_key:
-        jump_q = jump_q.eq("athlete_internal_key", athlete_key)
-    jump_lookup = {
-        (r["athlete_internal_key"], r["calendar_date"]): r["high_jump_event_count"]
-        for r in (jump_q.execute().data or [])
-    }
+    jump_rows = fetch_jump_sessions(client, athlete_key=athlete_key, since=since)
+    attach_high_jump_counts(rows, jump_rows)
     for r in rows:
-        r["high_jump_count"] = jump_lookup.get(
-            (r["athlete_internal_key"], r["calendar_date"])
-        )
+        r["session_date"] = r.get("calendar_date")
     return rows
 
 
@@ -157,51 +133,43 @@ def get_acwr_trend(
 
     rows = query.execute().data or []
 
-    # Build daily load totals per athlete
-    # daily_load[date][athlete_key] = total_load_that_day
-    daily_load = defaultdict(lambda: defaultdict(float))
-    athletes   = set()
-    for r in rows:
-        akey = r.get("athlete_internal_key")
-        cal  = r.get("calendar_date")
-        load = r.get("total_player_load") or 0.0
-        if akey and cal:
-            daily_load[cal][akey] += load
-            athletes.add(akey)
-
-    # One row per calendar day in the display window (rest days included) so line
-    # charts stay continuous like the hosted dashboard.
+    athletes = {
+        r.get("athlete_internal_key")
+        for r in rows
+        if r.get("athlete_internal_key")
+    }
     target_athletes = [athlete_key] if athlete_key else sorted(athletes)
     if not target_athletes:
         return []
 
+    by_athlete: dict[str, list] = defaultdict(list)
+    for r in rows:
+        akey = r.get("athlete_internal_key")
+        if akey:
+            by_athlete[akey].append(r)
+
     result = []
     for d in _date_spine(days):
         d_obj = date.fromisoformat(d)
-        all_acute: list[float] = []
-        all_chronic: list[float] = []
+        acute_vals: list[float] = []
+        chronic_vals: list[float] = []
         acwr_vals: list[float] = []
 
         for akey in target_athletes:
-            acute_sum = sum(
-                daily_load.get((d_obj - timedelta(days=i)).isoformat(), {}).get(akey, 0.0)
-                for i in range(7)
-            )
-            chronic_sum = sum(
-                daily_load.get((d_obj - timedelta(days=i)).isoformat(), {}).get(akey, 0.0)
-                for i in range(28)
-            )
-            acute = acute_sum / 7
-            chronic = chronic_sum / 28
-            all_acute.append(acute)
-            all_chronic.append(chronic)
-            if chronic > 0:
-                acwr_vals.append(acute / chronic)
+            info = compute_acwr(by_athlete[akey], ref=d_obj)
+            acute_vals.append(info["acute_load"])
+            chronic_vals.append(info["chronic_load"])
+            if info["acwr"] is not None:
+                acwr_vals.append(info["acwr"])
 
         result.append({
             "session_date": d,
-            "acute_load": round(sum(all_acute) / len(all_acute), 1) if all_acute else None,
-            "chronic_load": round(sum(all_chronic) / len(all_chronic), 1) if all_chronic else None,
+            "acute_load": (
+                round(sum(acute_vals) / len(acute_vals), 1) if acute_vals else None
+            ),
+            "chronic_load": (
+                round(sum(chronic_vals) / len(chronic_vals), 1) if chronic_vals else None
+            ),
             "acwr": round(sum(acwr_vals) / len(acwr_vals), 2) if acwr_vals else None,
         })
 

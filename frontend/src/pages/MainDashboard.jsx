@@ -15,9 +15,13 @@ import DualAxisChart, {
 } from "../components/charts/DualAxisChart";
 import SelectDropdown from "../components/ui/SelectDropdown";
 import DateRangePicker from "../components/ui/DateRangePicker";
+import AthleteRadarChart from "../components/charts/AthleteRadarChart";
+import TriadRiskCharts from "../components/charts/TriadRiskCharts";
+import EfficiencyScatterChart from "../components/charts/EfficiencyScatterChart";
 
 const METRIC_TOGGLES = [
   { id: "player_load", label: "Player Load", color: "#4CAF50" },
+  { id: "total_jumps", label: "Total Jumps", color: "#81C784" },
   { id: "high_jumps", label: "High Jumps", color: "#C8E600" },
   { id: "hrv", label: "HRV", color: "#2196F3" },
   { id: "velocity", label: "Peak Velocity", color: "#F5C400" },
@@ -27,6 +31,7 @@ export default function MainDashboard() {
   const { selectedAthlete, setSelectedAthlete, days, setDays } = useDashboard();
   const [activeMetrics, setActiveMetrics] = useState([
     "player_load",
+    "total_jumps",
     "high_jumps",
     "hrv",
   ]);
@@ -69,6 +74,41 @@ export default function MainDashboard() {
     queryFn: () => whoopApi.sleep(params),
   });
 
+  const { data: radarMetrics, isLoading: radarLoading } = useQuery({
+    queryKey: ["radar-metrics", selectedAthlete],
+    queryFn: () =>
+      dashboardApi.radarMetrics({
+        athlete_key: selectedAthlete,
+        days: 30,
+      }),
+    enabled: !!selectedAthlete,
+  });
+
+  const { data: triadRisk, isLoading: triadLoading } = useQuery({
+    queryKey: ["triad-risk", selectedAthlete],
+    queryFn: () =>
+      dashboardApi.triadRisk({
+        athlete_key: selectedAthlete,
+        days: 14,
+      }),
+    enabled: !!selectedAthlete,
+  });
+
+  const { data: efficiencyScatter, isLoading: efficiencyLoading } = useQuery({
+    queryKey: ["efficiency-scatter", selectedAthlete],
+    queryFn: () =>
+      dashboardApi.efficiencyScatter({
+        athlete_key: selectedAthlete,
+        days: 30,
+      }),
+    enabled: !!selectedAthlete,
+  });
+
+  const { data: dailyJumps = [] } = useQuery({
+    queryKey: ["daily-jumps", params],
+    queryFn: () => dashboardApi.dailyJumps(params),
+  });
+
   const catapultRows = summary.filter((r) => r.source === "catapult");
   const whoopRows = summary.filter((r) => r.source === "whoop");
 
@@ -83,7 +123,17 @@ export default function MainDashboard() {
       map[d].total_player_load = r.total_player_load;
       map[d].player_load_per_minute = r.player_load_per_minute;
       map[d].high_jump_count = r.high_jump_count;
+      if (r.total_jumps != null) {
+        map[d].total_jumps = Math.max(map[d].total_jumps ?? 0, r.total_jumps);
+      }
       map[d].total_distance = r.total_distance;
+    });
+
+    dailyJumps.forEach((r) => {
+      const d = r.session_date;
+      if (!map[d]) map[d] = { session_date: d };
+      if (r.total_jumps != null) map[d].total_jumps = r.total_jumps;
+      if (r.high_jump_count != null) map[d].high_jump_count = r.high_jump_count;
     });
 
     // WHOOP recovery — HRV, recovery score, resting HR, strain
@@ -115,7 +165,7 @@ export default function MainDashboard() {
     return Object.values(map).sort((a, b) =>
       a.session_date < b.session_date ? -1 : 1,
     );
-  }, [summary, acwrTrend, sleepData]);
+  }, [summary, acwrTrend, sleepData, dailyJumps]);
 
   // Metric options for dropdowns (exclude whichever is selected on the other axis)
   const metricOptions = DUAL_METRICS.map((m) => ({
@@ -247,6 +297,82 @@ export default function MainDashboard() {
         ))}
       </div>
 
+      {/* Athlete performance radar (selected athlete only) */}
+      {selectedAthlete && (
+        <div className="card" style={{ marginBottom: "20px" }}>
+          <div
+            style={{
+              fontSize: "13px",
+              fontWeight: 500,
+              marginBottom: "12px",
+            }}
+          >
+            Performance radar — indexed vs 30-day baseline
+          </div>
+          {radarLoading ? (
+            <LoadingSpinner message="Building radar profile..." />
+          ) : (
+            <AthleteRadarChart playerData={radarMetrics} height={300} />
+          )}
+        </div>
+      )}
+
+      {/* Triad — predictive injury risk (selected athlete) */}
+      {selectedAthlete && (
+        <div className="card" style={{ marginBottom: "20px" }}>
+          <div
+            style={{
+              fontSize: "13px",
+              fontWeight: 500,
+              marginBottom: "4px",
+            }}
+          >
+            The Triad — predictive injury risk
+          </div>
+          <p
+            style={{
+              fontSize: "11px",
+              color: "var(--text-secondary)",
+              margin: "0 0 12px",
+            }}
+          >
+            Workload shock (Catapult ACWR), tissue repair (WHOOP deep sleep), and
+            neuromuscular power (Catapult max jump vs 30-day ceiling). 14-day view;
+            jump + load update daily for all roster athletes.
+          </p>
+          <TriadRiskCharts triadData={triadRisk} loading={triadLoading} />
+        </div>
+      )}
+
+      {/* Internal vs external efficiency (selected athlete) */}
+      {selectedAthlete && (
+        <div className="card" style={{ marginBottom: "20px" }}>
+          <div
+            style={{
+              fontSize: "13px",
+              fontWeight: 500,
+              marginBottom: "4px",
+            }}
+          >
+            Internal vs external efficiency
+          </div>
+          <p
+            style={{
+              fontSize: "11px",
+              color: "var(--text-secondary)",
+              margin: "0 0 12px",
+            }}
+          >
+            Load (Catapult) vs strain (WHOOP) per session — last 30 days. Purple
+            line = 30-day efficiency baseline; blue = last 3 days.
+          </p>
+          <EfficiencyScatterChart
+            data={efficiencyScatter}
+            loading={efficiencyLoading}
+          />
+        </div>
+      )}
+
       {/* KPI Row */}
       {kpisLoading ? (
         <LoadingSpinner message="Loading metrics..." />
@@ -280,10 +406,17 @@ export default function MainDashboard() {
                 color="#C8E600"
               />
               <KPICard
+                label="Total Jumps"
+                value={kpis?.latest_total_jumps}
+                decimals={0}
+                sub="BMP daily total"
+                color="#81C784"
+              />
+              <KPICard
                 label="High Jumps"
                 value={kpis?.latest_high_jumps}
                 decimals={0}
-                sub="latest session"
+                sub="BMP daily total"
                 color="#F5C400"
               />
               <KPICard
@@ -330,10 +463,17 @@ export default function MainDashboard() {
                 sub={`${days}-day avg`}
               />
               <KPICard
+                label="Avg Total Jumps"
+                value={kpis?.avg_total_jumps}
+                decimals={0}
+                sub={`${days}-day BMP avg`}
+                color="#81C784"
+              />
+              <KPICard
                 label="Avg High Jumps"
                 value={kpis?.avg_high_jumps}
                 decimals={0}
-                sub={`${days}-day avg`}
+                sub={`${days}-day BMP avg`}
                 color="#F5C400"
               />
               <KPICard
@@ -395,10 +535,17 @@ export default function MainDashboard() {
                 color="#C8E600"
               />
               <KPICard
+                label="Total Jumps"
+                value={kpis?.latest_total_jumps}
+                decimals={0}
+                sub="BMP daily total"
+                color="#81C784"
+              />
+              <KPICard
                 label="High Jumps"
                 value={kpis?.latest_high_jumps}
                 decimals={0}
-                sub="latest session"
+                sub="BMP daily total"
                 color="#F5C400"
               />
               <KPICard
@@ -445,10 +592,17 @@ export default function MainDashboard() {
                 sub={`${days}-day avg`}
               />
               <KPICard
+                label="Total Jumps"
+                value={kpis?.avg_total_jumps}
+                decimals={0}
+                sub="BMP daily avg"
+                color="#81C784"
+              />
+              <KPICard
                 label="High Jumps"
                 value={kpis?.avg_high_jumps}
                 decimals={0}
-                sub="avg per session"
+                sub="BMP daily avg"
                 color="#C8E600"
               />
               <KPICard
@@ -521,6 +675,35 @@ export default function MainDashboard() {
             </div>
           )}
 
+          {activeMetrics.includes("total_jumps") && (
+            <div
+              className="card"
+              onClick={() => navigate("/catapult")}
+              style={{ cursor: "pointer" }}
+            >
+              <div
+                style={{
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  marginBottom: "16px",
+                }}
+              >
+                Daily Total Jumps (BMP)
+              </div>
+              <TrendLineChart
+                data={dailyJumps}
+                lines={[
+                  {
+                    key: "total_jumps",
+                    name: "Total Jumps",
+                    color: "#81C784",
+                  },
+                ]}
+                height={200}
+              />
+            </div>
+          )}
+
           {activeMetrics.includes("high_jumps") && (
             <div
               className="card"
@@ -534,10 +717,10 @@ export default function MainDashboard() {
                   marginBottom: "16px",
                 }}
               >
-                High Jump Count
+                High Jump Count (BMP)
               </div>
               <TrendLineChart
-                data={catapultRows}
+                data={dailyJumps.length ? dailyJumps : catapultRows}
                 lines={[
                   {
                     key: "high_jump_count",
@@ -742,6 +925,7 @@ export default function MainDashboard() {
                     "player_load",
                     "load_per_min",
                     "high_jumps",
+                    "total_jumps",
                     "hrv",
                     "recovery",
                     "acwr",
@@ -768,6 +952,7 @@ export default function MainDashboard() {
                     <th>Player Load</th>
                     <th>Load/min</th>
                     <th>High Jumps</th>
+                    <th>Total Jumps</th>
                     <th>HRV</th>
                     <th>Recovery</th>
                     <th title="Acute:Chronic Workload Ratio (7d÷28d avg load)">
@@ -798,6 +983,7 @@ export default function MainDashboard() {
                         <td>{a.player_load?.toFixed(0) ?? "—"}</td>
                         <td>{a.load_per_min?.toFixed(2) ?? "—"}</td>
                         <td>{a.high_jumps ?? "—"}</td>
+                        <td>{a.total_jumps ?? "—"}</td>
                         <td>{a.hrv ? `${a.hrv.toFixed(0)} ms` : "—"}</td>
                         <td>
                           <span className={`badge ${status.cls}`}>

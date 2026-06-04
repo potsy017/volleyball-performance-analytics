@@ -3,6 +3,7 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   ReferenceLine,
 } from 'recharts'
+import { CHART_CONTINUITY } from './chartDefaults'
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
@@ -80,6 +81,7 @@ export default function TrendLineChart({
         {lines.map(({ key, name, color, dashed }) => (
           <Line
             key={key}
+            type="monotone"
             dataKey={key}
             name={name}
             stroke={color}
@@ -87,6 +89,7 @@ export default function TrendLineChart({
             strokeDasharray={dashed ? '5 3' : undefined}
             dot={false}
             activeDot={{ r: 4, fill: color }}
+            {...CHART_CONTINUITY}
           />
         ))}
       </LineChart>

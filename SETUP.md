@@ -10,6 +10,7 @@ vpa/
 │   │   ├── core/config.py
 │   │   ├── db/supabase.py
 │   │   ├── routers/   (athletes, dashboard, gymaware, catapult, vald, whoop)
+│   │   ├── utils/jump_metrics.py
 │   │   ├── gymaware_exercises.py
 │   │   ├── gymaware_load_velocity.py
 │   │   └── models/schemas.py
@@ -25,6 +26,8 @@ vpa/
 │   ├── package.json
 │   ├── nginx.conf
 │   └── Dockerfile
+├── docs/
+│   └── CHARTS.md       # dashboard & page charts (radar, triad, efficiency, BMP jumps)
 └── docker-compose.yml
 ```
 
@@ -115,6 +118,9 @@ docker-compose down
 | DATA_SOURCE | Optional; default `supabase` |
 
 Toolkit handover docs (ETL + VPA features): `Capstone-team54-volleyball-toolkit/docs/operations/vpa_application_updates.md`
+
+**Charts (radar, triad, efficiency, BMP jumps, APIs):** [`docs/CHARTS.md`](docs/CHARTS.md)  
+**Planned features (e.g. Readiness vs. Reality matrix):** [`docs/PLANNED_FEATURES.md`](docs/PLANNED_FEATURES.md)
 
 ---
 

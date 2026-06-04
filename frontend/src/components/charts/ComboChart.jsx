@@ -2,6 +2,7 @@ import {
   ComposedChart, Bar, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
+import { CHART_CONTINUITY } from './chartDefaults'
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null
@@ -71,12 +72,14 @@ export default function ComboChart({
         />
         <Line
           yAxisId="line"
+          type="monotone"
           dataKey={lineKey}
           name={lineName}
           stroke={lineColor}
           strokeWidth={2}
           dot={false}
           activeDot={{ r: 4, fill: lineColor }}
+          {...CHART_CONTINUITY}
         />
       </ComposedChart>
     </ResponsiveContainer>

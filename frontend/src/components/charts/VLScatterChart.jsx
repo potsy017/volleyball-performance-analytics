@@ -2,6 +2,7 @@ import {
   ComposedChart, Scatter, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
+import { CHART_CONTINUITY } from './chartDefaults'
 
 const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
@@ -79,6 +80,7 @@ export default function VLScatterChart({ points = [], v0, l0, r2, nSets, height 
         {/* Regression line */}
         <Line
           data={regressionLine}
+          type="monotone"
           dataKey="velocity"
           stroke="rgba(200,230,0,0.55)"
           strokeWidth={1.5}
@@ -86,6 +88,7 @@ export default function VLScatterChart({ points = [], v0, l0, r2, nSets, height 
           dot={false}
           isAnimationActive={false}
           legendType="none"
+          {...CHART_CONTINUITY}
         />
 
         {/* V0 marker — dashed horizontal line at load=0, vel=V0 */}

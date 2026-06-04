@@ -160,7 +160,13 @@ function ExpandedAthleteRow({ athleteKey, selectedDay, onSelectDay, onOpenSource
   const weekBlocks = recent7Blocks(mergedDates)
 
   const catLoadRecent = catRecentRows.reduce((s, r) => s + (Number(r.total_player_load) || 0), 0)
-  const catJumpsRecent = catRecentRows.reduce((s, r) => s + (Number(r.total_jumps) || 0), 0)
+  const catJumpsByDay = {}
+  catRecentRows.forEach((r) => {
+    const d = r.calendar_date || r.session_date
+    const t = Number(r.total_jumps) || 0
+    if (d && t) catJumpsByDay[d] = Math.max(catJumpsByDay[d] ?? 0, t)
+  })
+  const catJumpsRecent = Object.values(catJumpsByDay).reduce((s, v) => s + v, 0)
   const catMaxVelRecent = catRecentRows.reduce((m, r) => Math.max(m, Number(r.max_vel) || 0), 0)
 
   const gymRepsRecent = gymRecentRows.reduce((s, r) => s + (Number(r.rep_count) || 0), 0)
@@ -376,7 +382,9 @@ export default function Readiness() {
           ? gymAthRows.filter(r => (r.calendar_date || r.session_date) === gymFresh.date)
           : []
 
-        const jumpsRecent = catFreshRows.reduce((s, r) => s + (Number(r.total_jumps) || 0), 0)
+        const jumpsRecent = catFreshRows.length
+          ? Math.max(...catFreshRows.map((r) => Number(r.total_jumps) || 0))
+          : 0
         const loadRecent = catFreshRows.reduce((s, r) => s + (Number(r.total_player_load) || 0), 0)
 
         const rag = readinessStatus(a.acwr, a.recovery)

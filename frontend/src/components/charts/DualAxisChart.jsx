@@ -2,6 +2,7 @@ import {
   ComposedChart, Bar, Line, Area, XAxis, YAxis,
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
+import { CHART_CONTINUITY } from './chartDefaults'
 
 // Metrics that render as a shaded area instead of a plain line
 const AREA_KEYS = new Set(['chronic_load', 'acute_load'])
@@ -11,6 +12,7 @@ export const DUAL_METRICS = [
   { key: 'total_player_load',               label: 'Player Load',        color: '#4CAF50', unit: 'AU'    },
   { key: 'player_load_per_minute',          label: 'Load / min',         color: '#C8E600', unit: 'AU/min'},
   { key: 'high_jump_count',                 label: 'High Jumps',         color: '#F5C400', unit: ''      },
+  { key: 'total_jumps',                     label: 'Total Jumps',        color: '#81C784', unit: ''      },
   { key: 'total_distance',                  label: 'Total Distance',     color: '#00BCD4', unit: 'm'     },
   // ── Workload ratios ───────────────────────────────────────────
   { key: 'acute_load',                      label: 'Acute Load (7d)',    color: '#FF9800', unit: 'AU/d'  },
@@ -137,7 +139,7 @@ export default function DualAxisChart({
             fill={`${sm.color}22`}
             dot={false}
             activeDot={{ r: 5, fill: sm.color }}
-            connectNulls
+            {...CHART_CONTINUITY}
           />
         ) : sm ? (
           <Line
@@ -149,7 +151,7 @@ export default function DualAxisChart({
             strokeWidth={2.5}
             dot={{ r: 3, fill: sm.color, strokeWidth: 0 }}
             activeDot={{ r: 5, fill: sm.color }}
-            connectNulls
+            {...CHART_CONTINUITY}
           />
         ) : null}
         {tm && AREA_KEYS.has(tertiaryKey) ? (
@@ -163,7 +165,7 @@ export default function DualAxisChart({
             fill={`${tm.color}22`}
             dot={false}
             activeDot={{ r: 4, fill: tm.color }}
-            connectNulls
+            {...CHART_CONTINUITY}
           />
         ) : tm ? (
           <Line
@@ -176,7 +178,7 @@ export default function DualAxisChart({
             strokeDasharray="6 3"
             dot={{ r: 2, fill: tm.color, strokeWidth: 0 }}
             activeDot={{ r: 4, fill: tm.color }}
-            connectNulls
+            {...CHART_CONTINUITY}
           />
         ) : null}
       </ComposedChart>
