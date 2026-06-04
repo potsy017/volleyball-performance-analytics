@@ -3,6 +3,7 @@ import {
   CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts'
 import { CHART_CONTINUITY } from './chartDefaults'
+import { TOTAL_JUMP_LABEL, HIGH_JUMP_LABEL } from '../../utils/jumpMetrics'
 
 // Metrics that render as a shaded area instead of a plain line
 const AREA_KEYS = new Set(['chronic_load', 'acute_load'])
@@ -11,8 +12,8 @@ export const DUAL_METRICS = [
   // ── Catapult ──────────────────────────────────────────────────
   { key: 'total_player_load',               label: 'Player Load',        color: '#4CAF50', unit: 'AU'    },
   { key: 'player_load_per_minute',          label: 'Load / min',         color: '#C8E600', unit: 'AU/min'},
-  { key: 'high_jump_count',                 label: 'High Jumps',         color: '#F5C400', unit: ''      },
-  { key: 'total_jumps',                     label: 'Total Jumps',        color: '#81C784', unit: ''      },
+  { key: 'high_jump_count',                 label: HIGH_JUMP_LABEL,      color: '#F5C400', unit: ''      },
+  { key: 'total_jumps',                     label: TOTAL_JUMP_LABEL,     color: '#81C784', unit: ''      },
   { key: 'total_distance',                  label: 'Total Distance',     color: '#00BCD4', unit: 'm'     },
   // ── Workload ratios ───────────────────────────────────────────
   { key: 'acute_load',                      label: 'Acute Load (7d)',    color: '#FF9800', unit: 'AU/d'  },

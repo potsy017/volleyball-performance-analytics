@@ -12,6 +12,18 @@ import LastSync from "../components/ui/LastSync";
 import ComboChart from "../components/charts/ComboChart";
 import TrendLineChart from "../components/charts/TrendLineChart";
 import { downloadCsv } from "../utils/csvExport";
+import JumpKpiCards from "../components/ui/JumpKpiCards";
+import {
+  TOTAL_JUMP_LABEL,
+  HIGH_JUMP_LABEL,
+  CHART_HIGH_JUMPS_TITLE,
+  formatHighJumpPct,
+  highJumpPct,
+} from "../utils/jumpMetrics";
+
+function sessionTotalJumps(r) {
+  return r?.session_jump_count ?? r?.total_jumps ?? null;
+}
 
 export default function Catapult() {
   const { selectedAthlete } = useDashboard();
@@ -85,10 +97,15 @@ export default function Catapult() {
       sessions.length
     : null;
   const jumpSessions = sessions.filter((r) => r.high_jump_count != null);
-  const avgJumps = jumpSessions.length
+  const avgHighJumps = jumpSessions.length
     ? jumpSessions.reduce((s, r) => s + r.high_jump_count, 0) /
       jumpSessions.length
     : null;
+  const avgTotalJumps = jumpSessions.length
+    ? jumpSessions.reduce((s, r) => s + (sessionTotalJumps(r) ?? 0), 0) /
+      jumpSessions.length
+    : null;
+  const latestTotalJumps = sessionTotalJumps(latestWithJumps);
 
   const focusedSessions = useMemo(
     () =>
@@ -242,14 +259,25 @@ export default function Catapult() {
                 color: "#C8E600",
               },
               {
-                label: "High Jumps",
+                label: HIGH_JUMP_LABEL,
                 value: selectedSession.high_jump_count,
                 color: "#F5C400",
               },
               {
-                label: "Total Jumps",
-                value: selectedSession.session_jump_count,
-                color: "var(--text-secondary)",
+                label: TOTAL_JUMP_LABEL,
+                value: sessionTotalJumps(selectedSession),
+                color: "#81C784",
+              },
+              {
+                label: "High Jump %",
+                value: (() => {
+                  const p = highJumpPct(
+                    selectedSession.high_jump_count,
+                    sessionTotalJumps(selectedSession),
+                  );
+                  return p != null ? `${p}%` : null;
+                })(),
+                color: "#FFB74D",
               },
               {
                 label: "Distance (m)",
@@ -356,16 +384,14 @@ export default function Catapult() {
           sub="last session"
           color="#C8E600"
         />
-        <KPICard
-          label="High Jumps"
-          value={latestWithJumps.high_jump_count}
-          decimals={0}
-          sub={
+        <JumpKpiCards
+          total={latestTotalJumps}
+          high={latestWithJumps.high_jump_count}
+          periodSub={
             latestWithJumps.session_date || latestWithJumps.calendar_date
               ? `latest · ${latestWithJumps.session_date || latestWithJumps.calendar_date}`
               : "last session"
           }
-          color="#F5C400"
         />
         <KPICard
           label="Total Distance"
@@ -382,12 +408,13 @@ export default function Catapult() {
           sub={`${days}-day avg`}
           color="var(--text-secondary)"
         />
-        <KPICard
-          label="Avg High Jumps"
-          value={avgJumps}
-          decimals={0}
-          sub={`${days}-day avg`}
-          color="var(--text-secondary)"
+        <JumpKpiCards
+          total={avgTotalJumps}
+          high={avgHighJumps}
+          periodSub={`${days}-day session avg`}
+          totalColor="var(--text-secondary)"
+          highColor="var(--text-secondary)"
+          pctColor="var(--text-secondary)"
         />
         <KPICard
           label="Acute Load"
@@ -496,12 +523,25 @@ export default function Catapult() {
           <div
             style={{ fontSize: "13px", fontWeight: 500, marginBottom: "16px" }}
           >
-            High jump count
+            {CHART_HIGH_JUMPS_TITLE}
+          </div>
+          <div
+            style={{
+              fontSize: "11px",
+              color: "var(--text-secondary)",
+              marginBottom: "16px",
+            }}
+          >
+            {HIGH_JUMP_LABEL} — compare with total jumps / High % KPIs above
           </div>
           <TrendLineChart
             data={trend}
             lines={[
-              { key: "high_jump_count", name: "High Jumps", color: "#C8E600" },
+              {
+                key: "high_jump_count",
+                name: HIGH_JUMP_LABEL,
+                color: "#C8E600",
+              },
             ]}
             height={200}
           />
@@ -548,7 +588,16 @@ export default function Catapult() {
           <button
             className="toggle-btn"
             onClick={() =>
-              downloadCsv(focusedSessions, "catapult-sessions.csv", [
+              downloadCsv(
+                focusedSessions.map((r) => ({
+                  ...r,
+                  high_jump_pct: formatHighJumpPct(
+                    r.high_jump_count,
+                    sessionTotalJumps(r),
+                  ),
+                })),
+                "catapult-sessions.csv",
+                [
                 "session_date",
                 "athlete_display_name",
                 "activity_name",
@@ -556,9 +605,11 @@ export default function Catapult() {
                 "player_load_per_minute",
                 "high_jump_count",
                 "session_jump_count",
+                "high_jump_pct",
                 "total_distance",
                 "field_time",
-              ])
+              ],
+              )
             }
           >
             ⬇ Export CSV
@@ -576,8 +627,11 @@ export default function Catapult() {
                   <th>Activity</th>
                   <th>Player Load</th>
                   <th>Load/min</th>
-                  <th>High Jumps</th>
-                  <th>Total Jumps</th>
+                  <th title="BMP — all jumps with detected flight">
+                    {TOTAL_JUMP_LABEL}
+                  </th>
+                  <th title="BMP — jumps ≥40 cm">{HIGH_JUMP_LABEL}</th>
+                  <th>High %</th>
                   <th>Distance (m)</th>
                   <th>Field Time</th>
                 </tr>
@@ -624,10 +678,16 @@ export default function Catapult() {
                       <td style={{ color: "#C8E600", fontWeight: 500 }}>
                         {r.player_load_per_minute?.toFixed(2) ?? "—"}
                       </td>
+                      <td>{sessionTotalJumps(r) ?? "—"}</td>
                       <td style={{ color: "#F5C400" }}>
                         {r.high_jump_count ?? "—"}
                       </td>
-                      <td>{r.session_jump_count ?? "—"}</td>
+                      <td>
+                        {formatHighJumpPct(
+                          r.high_jump_count,
+                          sessionTotalJumps(r),
+                        )}
+                      </td>
                       <td>{r.total_distance?.toFixed(0) ?? "—"}</td>
                       <td>
                         {r.field_time != null

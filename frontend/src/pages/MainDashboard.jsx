@@ -18,11 +18,19 @@ import DateRangePicker from "../components/ui/DateRangePicker";
 import AthleteRadarChart from "../components/charts/AthleteRadarChart";
 import TriadRiskCharts from "../components/charts/TriadRiskCharts";
 import EfficiencyScatterChart from "../components/charts/EfficiencyScatterChart";
+import JumpKpiCards from "../components/ui/JumpKpiCards";
+import {
+  TOTAL_JUMP_LABEL,
+  HIGH_JUMP_LABEL,
+  CHART_TOTAL_JUMPS_TITLE,
+  CHART_HIGH_JUMPS_TITLE,
+  formatHighJumpPct,
+} from "../utils/jumpMetrics";
 
 const METRIC_TOGGLES = [
   { id: "player_load", label: "Player Load", color: "#4CAF50" },
-  { id: "total_jumps", label: "Total Jumps", color: "#81C784" },
-  { id: "high_jumps", label: "High Jumps", color: "#C8E600" },
+  { id: "total_jumps", label: "Total Jumps (BMP)", color: "#81C784" },
+  { id: "high_jumps", label: "High Jumps (≥40 cm)", color: "#C8E600" },
   { id: "hrv", label: "HRV", color: "#2196F3" },
   { id: "velocity", label: "Peak Velocity", color: "#F5C400" },
 ];
@@ -405,19 +413,14 @@ export default function MainDashboard() {
                 sub="latest session"
                 color="#C8E600"
               />
-              <KPICard
-                label="Total Jumps"
-                value={kpis?.latest_total_jumps}
-                decimals={0}
-                sub="BMP daily total"
-                color="#81C784"
-              />
-              <KPICard
-                label="High Jumps"
-                value={kpis?.latest_high_jumps}
-                decimals={0}
-                sub="BMP daily total"
-                color="#F5C400"
+              <JumpKpiCards
+                total={kpis?.latest_total_jumps}
+                high={kpis?.latest_high_jumps}
+                periodSub={
+                  kpis?.latest_session_date
+                    ? `latest · ${kpis.latest_session_date}`
+                    : "latest BMP day"
+                }
               />
               <KPICard
                 label="HRV (rMSSD)"
@@ -462,19 +465,10 @@ export default function MainDashboard() {
                 decimals={2}
                 sub={`${days}-day avg`}
               />
-              <KPICard
-                label="Avg Total Jumps"
-                value={kpis?.avg_total_jumps}
-                decimals={0}
-                sub={`${days}-day BMP avg`}
-                color="#81C784"
-              />
-              <KPICard
-                label="Avg High Jumps"
-                value={kpis?.avg_high_jumps}
-                decimals={0}
-                sub={`${days}-day BMP avg`}
-                color="#F5C400"
+              <JumpKpiCards
+                total={kpis?.avg_total_jumps}
+                high={kpis?.avg_high_jumps}
+                periodSub={`${days}-day BMP avg`}
               />
               <KPICard
                 label="Avg HRV"
@@ -534,19 +528,14 @@ export default function MainDashboard() {
                 sub="latest session"
                 color="#C8E600"
               />
-              <KPICard
-                label="Total Jumps"
-                value={kpis?.latest_total_jumps}
-                decimals={0}
-                sub="BMP daily total"
-                color="#81C784"
-              />
-              <KPICard
-                label="High Jumps"
-                value={kpis?.latest_high_jumps}
-                decimals={0}
-                sub="BMP daily total"
-                color="#F5C400"
+              <JumpKpiCards
+                total={kpis?.latest_total_jumps}
+                high={kpis?.latest_high_jumps}
+                periodSub={
+                  kpis?.latest_session_date
+                    ? `latest · ${kpis.latest_session_date}`
+                    : "latest BMP day"
+                }
               />
               <KPICard
                 label="HRV (rMSSD)"
@@ -591,19 +580,10 @@ export default function MainDashboard() {
                 decimals={2}
                 sub={`${days}-day avg`}
               />
-              <KPICard
-                label="Total Jumps"
-                value={kpis?.avg_total_jumps}
-                decimals={0}
-                sub="BMP daily avg"
-                color="#81C784"
-              />
-              <KPICard
-                label="High Jumps"
-                value={kpis?.avg_high_jumps}
-                decimals={0}
-                sub="BMP daily avg"
-                color="#C8E600"
+              <JumpKpiCards
+                total={kpis?.avg_total_jumps}
+                high={kpis?.avg_high_jumps}
+                periodSub={`${days}-day team BMP avg`}
               />
               <KPICard
                 label="HRV (rMSSD)"
@@ -685,17 +665,26 @@ export default function MainDashboard() {
                 style={{
                   fontSize: "13px",
                   fontWeight: 500,
+                  marginBottom: "4px",
+                }}
+              >
+                {CHART_TOTAL_JUMPS_TITLE}
+              </div>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-secondary)",
                   marginBottom: "16px",
                 }}
               >
-                Daily Total Jumps (BMP)
+                {TOTAL_JUMP_LABEL} — every BMP jump with detected flight time
               </div>
               <TrendLineChart
                 data={dailyJumps}
                 lines={[
                   {
                     key: "total_jumps",
-                    name: "Total Jumps",
+                    name: TOTAL_JUMP_LABEL,
                     color: "#81C784",
                   },
                 ]}
@@ -714,17 +703,26 @@ export default function MainDashboard() {
                 style={{
                   fontSize: "13px",
                   fontWeight: 500,
+                  marginBottom: "4px",
+                }}
+              >
+                {CHART_HIGH_JUMPS_TITLE}
+              </div>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-secondary)",
                   marginBottom: "16px",
                 }}
               >
-                High Jump Count (BMP)
+                {HIGH_JUMP_LABEL} — usually close to total; see High Jump % KPI
               </div>
               <TrendLineChart
                 data={dailyJumps.length ? dailyJumps : catapultRows}
                 lines={[
                   {
                     key: "high_jump_count",
-                    name: "High Jumps",
+                    name: HIGH_JUMP_LABEL,
                     color: "#C8E600",
                   },
                 ]}
@@ -919,20 +917,31 @@ export default function MainDashboard() {
               <button
                 className="toggle-btn"
                 onClick={() =>
-                  downloadCsv(teamSnapshot, "team-snapshot.csv", [
+                  downloadCsv(
+                    teamSnapshot.map((a) => ({
+                      ...a,
+                      high_jump_pct: formatHighJumpPct(
+                        a.high_jumps,
+                        a.total_jumps,
+                      ),
+                    })),
+                    "team-snapshot.csv",
+                    [
                     "athlete_name",
                     "last_session",
                     "player_load",
                     "load_per_min",
-                    "high_jumps",
                     "total_jumps",
+                    "high_jumps",
+                    "high_jump_pct",
                     "hrv",
                     "recovery",
                     "acwr",
                     "acute_load",
                     "chronic_load",
                     "acwr_status",
-                  ])
+                  ],
+                  )
                 }
               >
                 ⬇ Export CSV
@@ -951,8 +960,15 @@ export default function MainDashboard() {
                     <th>Last Session</th>
                     <th>Player Load</th>
                     <th>Load/min</th>
-                    <th>High Jumps</th>
-                    <th>Total Jumps</th>
+                    <th title="BMP — all jumps with detected flight">
+                      {TOTAL_JUMP_LABEL}
+                    </th>
+                    <th title="BMP — jumps ≥40 cm (~0.57 s flight)">
+                      {HIGH_JUMP_LABEL}
+                    </th>
+                    <th title="High jumps ÷ total jumps (latest BMP day)">
+                      High %
+                    </th>
                     <th>HRV</th>
                     <th>Recovery</th>
                     <th title="Acute:Chronic Workload Ratio (7d÷28d avg load)">
@@ -982,8 +998,11 @@ export default function MainDashboard() {
                         </td>
                         <td>{a.player_load?.toFixed(0) ?? "—"}</td>
                         <td>{a.load_per_min?.toFixed(2) ?? "—"}</td>
-                        <td>{a.high_jumps ?? "—"}</td>
                         <td>{a.total_jumps ?? "—"}</td>
+                        <td>{a.high_jumps ?? "—"}</td>
+                        <td>
+                          {formatHighJumpPct(a.high_jumps, a.total_jumps)}
+                        </td>
                         <td>{a.hrv ? `${a.hrv.toFixed(0)} ms` : "—"}</td>
                         <td>
                           <span className={`badge ${status.cls}`}>
