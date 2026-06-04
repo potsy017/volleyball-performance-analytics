@@ -98,12 +98,13 @@ export default function AthletePage() {
               onClick={() => setShowModal(true)}
               style={{
                 padding: '10px 22px',
-                background: 'rgba(124,255,103,0.12)',
-                border: '1px solid rgba(124,255,103,0.35)',
+                background: 'linear-gradient(135deg, #00843D 0%, #FFCD00 100%)',
+                border: 'none',
                 borderRadius: '10px',
-                color: '#7cff67',
-                fontSize: '14px', fontWeight: 500,
+                color: '#fff',
+                fontSize: '14px', fontWeight: 600,
                 cursor: 'pointer',
+                boxShadow: '0 2px 12px rgba(0,132,61,0.35)',
               }}
             >
               Request Coach Access
@@ -168,7 +169,7 @@ export default function AthletePage() {
             )}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button onClick={() => setShowModal(false)} style={{ padding: '8px 16px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '8px', color: 'rgba(255,255,255,0.6)', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={submitRequest} disabled={reqState === 'loading'} style={{ padding: '8px 20px', background: 'linear-gradient(135deg, #7cff67 0%, #5227FF 100%)', border: 'none', borderRadius: '8px', color: '#0a0a1a', fontSize: '13px', fontWeight: 600, cursor: reqState === 'loading' ? 'not-allowed' : 'pointer', opacity: reqState === 'loading' ? 0.6 : 1 }}>
+              <button onClick={submitRequest} disabled={reqState === 'loading'} style={{ padding: '8px 20px', background: 'linear-gradient(135deg, #00843D 0%, #FFCD00 100%)', border: 'none', borderRadius: '8px', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: reqState === 'loading' ? 'not-allowed' : 'pointer', opacity: reqState === 'loading' ? 0.6 : 1, boxShadow: '0 2px 12px rgba(0,132,61,0.35)' }}>
                 {reqState === 'loading' ? 'Sending…' : 'Send Request'}
               </button>
             </div>
