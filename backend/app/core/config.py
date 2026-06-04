@@ -22,7 +22,9 @@ class Settings(BaseSettings):
 
     @property
     def origins_list(self) -> list[str]:
-        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",")]
+        # Strip surrounding quotes Railway sometimes adds, then split
+        raw = self.ALLOWED_ORIGINS.strip().strip('"').strip("'")
+        return [o.strip().strip('"').strip("'") for o in raw.split(",") if o.strip()]
 
     @property
     def allowed_email_domains_list(self) -> list[str]:
