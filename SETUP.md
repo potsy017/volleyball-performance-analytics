@@ -114,8 +114,18 @@ docker-compose down
 | SUPABASE_SERVICE_KEY | Service role key (not anon key — gives full DB access) |
 | SECRET_KEY | Any random string (used for future auth) |
 | ALLOWED_ORIGINS | Comma-separated list of allowed frontend origins |
-| AUTH_ENABLED | Optional; `false` until Entra SSO |
+| AUTH_ENABLED | Optional; `false` for local API dev (no JWT required) |
 | DATA_SOURCE | Optional; default `supabase` |
+
+### Frontend (`frontend/.env.local`, gitignored)
+
+Copy `frontend/.env.example` → `frontend/.env.local`.
+
+| Variable | Description |
+|---|---|
+| `VITE_SUPABASE_URL` | Supabase project URL (required for login / MFA testing) |
+| `VITE_SUPABASE_ANON_KEY` | Anon key from Project Settings → API (not service role) |
+| `VITE_AUTH_DISABLED` | Set to `true` only for local dashboard work without login; omit in production |
 
 Toolkit handover docs (ETL + VPA features): `Capstone-team54-volleyball-toolkit/docs/operations/vpa_application_updates.md`
 

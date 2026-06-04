@@ -3,8 +3,15 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+/** Opt-in local dev only — set in frontend/.env.local (gitignored). Off by default. */
+const authDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true'
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase =
+  authDisabled || !supabaseUrl || !supabaseAnonKey
+    ? null
+    : createClient(supabaseUrl, supabaseAnonKey)
+
+const DEV_USER = { id: 'dev-user', email: 'dev@local' }
 
 const AuthContext = createContext(null)
 
@@ -23,6 +30,18 @@ export function AuthProvider({ children }) {
   }
 
   useEffect(() => {
+    if (authDisabled) {
+      setUser(DEV_USER)
+      setRole('coach')
+      setLoading(false)
+      return
+    }
+
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
@@ -52,11 +71,15 @@ export function AuthProvider({ children }) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
+    if (supabase) await supabase.auth.signOut()
+    if (authDisabled) {
+      setUser(DEV_USER)
+      setRole('coach')
+    }
   }
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, signIn, signOut, supabase }}>
+    <AuthContext.Provider value={{ user, role, loading, authDisabled, signIn, signOut, supabase }}>
       {children}
     </AuthContext.Provider>
   )

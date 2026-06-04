@@ -17,9 +17,9 @@ import Readiness from './pages/Readiness'
 
 // Redirect based on role after login
 function RoleRedirect() {
-  const { user, role, loading } = useAuth()
+  const { user, role, loading, authDisabled } = useAuth()
   if (loading) return null
-  if (!user) return <Navigate to="/login" replace />
+  if (!user && !authDisabled) return <Navigate to="/login" replace />
   if (role === 'athlete') return <Navigate to="/athlete" replace />
   return <Navigate to="/dashboard" replace />
 }

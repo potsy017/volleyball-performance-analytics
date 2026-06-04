@@ -10,10 +10,10 @@ import { useAuth } from '../context/AuthContext'
  *     coach trying to access athlete route → /dashboard
  */
 export default function ProtectedRoute({ children, role }) {
-  const { user, role: userRole, loading } = useAuth()
+  const { user, role: userRole, loading, authDisabled } = useAuth()
 
   if (loading) return null
-  if (!user) return <Navigate to="/login" replace />
+  if (!user && !authDisabled) return <Navigate to="/login" replace />
 
   if (role && userRole !== role) {
     return <Navigate to={userRole === 'athlete' ? '/athlete' : '/dashboard'} replace />
