@@ -3,6 +3,9 @@ import { DashboardProvider } from './context/DashboardContext'
 import Navbar from './components/layout/Navbar'
 import DarkVeil from './components/ui/DarkVeil'
 import ErrorBoundary from './components/ErrorBoundary'
+import ProtectedRoute from './components/ProtectedRoute'
+import LoginPage from './pages/LoginPage'
+import SignupPage from './pages/SignupPage'
 import MainDashboard from './pages/MainDashboard'
 import Gymaware from './pages/Gymaware'
 import Catapult from './pages/Catapult'
@@ -11,10 +14,10 @@ import Whoop from './pages/Whoop'
 import AthleteReport from './pages/AthleteReport'
 import Readiness from './pages/Readiness'
 
-export default function App() {
+function AppShell() {
   return (
     <DashboardProvider>
-      {/* Fixed full-screen DarkVeil background — sits behind everything */}
+      {/* Fixed full-screen DarkVeil background */}
       <div style={{
         position: 'fixed',
         top: 0,
@@ -33,23 +36,33 @@ export default function App() {
         />
       </div>
 
-      {/* App content — sits above the background */}
+      {/* App content */}
       <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
         <Navbar />
         <main>
           <ErrorBoundary>
             <Routes>
-              <Route path="/"         element={<ErrorBoundary><MainDashboard /></ErrorBoundary>} />
-              <Route path="/gymaware" element={<ErrorBoundary><Gymaware /></ErrorBoundary>} />
-              <Route path="/catapult" element={<ErrorBoundary><Catapult /></ErrorBoundary>} />
-              <Route path="/vald"     element={<ErrorBoundary><Vald /></ErrorBoundary>} />
-              <Route path="/whoop"    element={<ErrorBoundary><Whoop /></ErrorBoundary>} />
-              <Route path="/readiness" element={<ErrorBoundary><Readiness /></ErrorBoundary>} />
-              <Route path="/report"   element={<ErrorBoundary><AthleteReport /></ErrorBoundary>} />
+              <Route path="/"          element={<ProtectedRoute><ErrorBoundary><MainDashboard /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/gymaware"  element={<ProtectedRoute><ErrorBoundary><Gymaware /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/catapult"  element={<ProtectedRoute><ErrorBoundary><Catapult /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/vald"      element={<ProtectedRoute><ErrorBoundary><Vald /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/whoop"     element={<ProtectedRoute><ErrorBoundary><Whoop /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/readiness" element={<ProtectedRoute><ErrorBoundary><Readiness /></ErrorBoundary></ProtectedRoute>} />
+              <Route path="/report"    element={<ProtectedRoute><ErrorBoundary><AthleteReport /></ErrorBoundary></ProtectedRoute>} />
             </Routes>
           </ErrorBoundary>
         </main>
       </div>
     </DashboardProvider>
+  )
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/*" element={<AppShell />} />
+    </Routes>
   )
 }

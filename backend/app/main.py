@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.routers import athletes, dashboard, gymaware, catapult, vald, whoop
+from app.routers import athletes, dashboard, gymaware, catapult, vald, whoop, access_requests
 
 app = FastAPI(
     title="Volleyball Performance Analytics API",
@@ -24,6 +24,7 @@ app.include_router(gymaware.router, prefix="/api")
 app.include_router(catapult.router, prefix="/api")
 app.include_router(vald.router, prefix="/api")
 app.include_router(whoop.router, prefix="/api")
+app.include_router(access_requests.router, prefix="/api")
 
 
 @app.get("/api/health")

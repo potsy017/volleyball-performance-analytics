@@ -15,12 +15,10 @@ class Settings(BaseSettings):
     DATA_SOURCE: str = "supabase"
     WAREHOUSE_CONNECTION_STRING: str = ""
 
-    # Optional — used on client-changes-sai / after Entra auth merge
-    AUTH_ENABLED: bool = False
-    SUPABASE_JWT_SECRET: str = ""
-    ALLOWED_EMAIL_DOMAINS: str = ""
-    DATA_SOURCE: str = "supabase"
-    WAREHOUSE_CONNECTION_STRING: str = ""
+    # Gmail SMTP for admin notifications
+    GMAIL_USER: str = ""
+    GMAIL_APP_PASSWORD: str = ""
+    ADMIN_EMAIL: str = ""
 
     @property
     def origins_list(self) -> list[str]:

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { supabase } from '../context/AuthContext'
 
 // Production: set VITE_API_URL at build time (e.g. Railway).
 // Local dev: use /api so Vite proxies to the backend (avoids CORS localhost vs 127.0.0.1).
@@ -7,11 +8,14 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// ---------------------------------------------------------------------------
-// Athlete endpoints
-// athlete objects now include athlete_internal_key (string, e.g. "VB-5406785896")
-// All silver-table endpoints accept athlete_key=<athlete_internal_key>
-// ---------------------------------------------------------------------------
+// Attach Supabase JWT to every request automatically
+api.interceptors.request.use(async (config) => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session?.access_token) {
+    config.headers.Authorization = `Bearer ${session.access_token}`
+  }
+  return config
+})
 
 export const athleteApi = {
   list: () => api.get('/athletes/').then(r => r.data),
@@ -19,26 +23,22 @@ export const athleteApi = {
 }
 
 export const dashboardApi = {
-  // params may include: { athlete_key, days }
   summary:      (params) => api.get('/dashboard/summary',       { params }).then(r => r.data),
   kpis:         (params) => api.get('/dashboard/kpis',          { params }).then(r => r.data),
   teamSnapshot: ()       => api.get('/dashboard/team-snapshot').then(r => r.data),
 }
 
 export const gymawareApi = {
-  // params may include: { athlete_key, days, from_date, exercise }
   sessions:     (params) => api.get('/gymaware/sessions',      { params }).then(r => r.data),
   exercises:    (params) => api.get('/gymaware/exercises',     { params }).then(r => r.data),
   pb:           (params) => api.get('/gymaware/pb',            { params }).then(r => r.data),
   sessionVsPb:  (params) => api.get('/gymaware/session-vs-pb', { params }).then(r => r.data),
   velocityTrend:(params) => api.get('/gymaware/velocity-trend',{ params }).then(r => r.data),
   vlProfile:    (params) => api.get('/gymaware/vl-profile',    { params }).then(r => r.data),
-  loadVelocityAnalysis: (params) =>
-    api.get('/gymaware/load-velocity-analysis', { params }).then(r => r.data),
+  loadVelocityAnalysis: (params) => api.get('/gymaware/load-velocity-analysis', { params }).then(r => r.data),
 }
 
 export const catapultApi = {
-  // params may include: { athlete_key, days, activity }
   sessions:   (params) => api.get('/catapult/sessions',   { params }).then(r => r.data),
   activities: (params) => api.get('/catapult/activities', { params }).then(r => r.data),
   loadTrend:  (params) => api.get('/catapult/load-trend', { params }).then(r => r.data),
@@ -52,7 +52,6 @@ export const valdApi = {
 }
 
 export const whoopApi = {
-  // params may include: { athlete_key, days }
   recovery: (params) => api.get('/whoop/recovery',  { params }).then(r => r.data),
   hrvTrend: (params) => api.get('/whoop/hrv-trend', { params }).then(r => r.data),
   sleep:    (params) => api.get('/whoop/sleep',     { params }).then(r => r.data),

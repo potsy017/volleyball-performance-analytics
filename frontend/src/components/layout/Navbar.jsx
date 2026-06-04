@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { NavLink } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { athleteApi } from '../../services/api'
+import api, { athleteApi } from '../../services/api'
 import { useDashboard } from '../../context/DashboardContext'
+import { useAuth } from '../../context/AuthContext'
 
 const NAV_ITEMS = [
   { to: '/',         label: 'Dashboard' },
@@ -17,7 +19,6 @@ function AthleteDropdown({ athletes, selectedAthlete, setSelectedAthlete }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false)
@@ -31,7 +32,6 @@ function AthleteDropdown({ athletes, selectedAthlete, setSelectedAthlete }) {
 
   return (
     <div ref={ref} style={{ position: 'relative', minWidth: '180px', flexShrink: 0 }}>
-      {/* Trigger */}
       <button
         onClick={() => setOpen(o => !o)}
         style={{
@@ -59,7 +59,6 @@ function AthleteDropdown({ athletes, selectedAthlete, setSelectedAthlete }) {
         }}>▼</span>
       </button>
 
-      {/* Dropdown panel */}
       {open && (
         <div style={{
           position: 'absolute',
@@ -75,7 +74,6 @@ function AthleteDropdown({ athletes, selectedAthlete, setSelectedAthlete }) {
           maxHeight: '340px',
           overflowY: 'auto',
         }}>
-          {/* All Athletes */}
           <div
             onClick={() => { setSelectedAthlete(null); setOpen(false) }}
             style={{
@@ -93,7 +91,6 @@ function AthleteDropdown({ athletes, selectedAthlete, setSelectedAthlete }) {
             All Athletes
           </div>
 
-          {/* Athlete list */}
           {athletes.map(a => {
             const isActive = selectedAthlete === a.athlete_internal_key
             return (
@@ -121,8 +118,159 @@ function AthleteDropdown({ athletes, selectedAthlete, setSelectedAthlete }) {
   )
 }
 
+function CoachRequestButton({ userEmail }) {
+  const [state, setState] = useState('idle') // idle | loading | success | error | already
+  const [showModal, setShowModal] = useState(false)
+  const [reason, setReason] = useState('')
+
+  async function submit() {
+    setState('loading')
+    try {
+      await api.post('/request-coach-access', { email: userEmail, reason })
+      setState('success')
+      setShowModal(false)
+    } catch (err) {
+      if (err?.response?.status === 409) { setState('already'); setShowModal(false); return }
+      console.error('Coach request failed:', err?.response?.status, err?.response?.data)
+      setState('error')
+    }
+  }
+
+  if (state === 'success') {
+    return (
+      <span style={{ fontSize: '12px', color: '#7cff67', padding: '0 8px' }}>
+        ✓ Request sent
+      </span>
+    )
+  }
+  if (state === 'already') {
+    return (
+      <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)', padding: '0 8px' }}>
+        Request pending…
+      </span>
+    )
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setShowModal(true)}
+        style={{
+          padding: '6px 12px',
+          background: 'rgba(124,255,103,0.1)',
+          border: '1px solid rgba(124,255,103,0.3)',
+          borderRadius: '8px',
+          color: '#7cff67',
+          fontSize: '12px',
+          fontWeight: 500,
+          cursor: 'pointer',
+          flexShrink: 0,
+          transition: 'background 0.15s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.background = 'rgba(124,255,103,0.2)'}
+        onMouseLeave={e => e.currentTarget.style.background = 'rgba(124,255,103,0.1)'}
+      >
+        Request Coach Access
+      </button>
+
+      {/* Modal — rendered via portal so it escapes the sticky navbar stacking context */}
+      {showModal && createPortal(
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          background: 'rgba(0,0,0,0.6)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}
+          onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}
+        >
+          <div style={{
+            background: '#1A1C23',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: '14px',
+            padding: '32px',
+            width: '100%',
+            maxWidth: '420px',
+            boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+          }}>
+            <div style={{ fontSize: '16px', fontWeight: 600, color: '#fff', marginBottom: '8px' }}>
+              Request Coach Access
+            </div>
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', marginBottom: '20px' }}>
+              Your request will be sent to the admin team. They will review and update your access directly.
+            </div>
+
+            <label style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', display: 'block', marginBottom: '6px' }}>
+              Reason <span style={{ color: 'rgba(255,255,255,0.3)' }}>(optional)</span>
+            </label>
+            <textarea
+              value={reason}
+              onChange={e => setReason(e.target.value)}
+              placeholder="e.g. I'm a coach for the U18 team…"
+              rows={3}
+              style={{
+                width: '100%',
+                boxSizing: 'border-box',
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: '8px',
+                padding: '10px 12px',
+                color: '#fff',
+                fontSize: '13px',
+                resize: 'vertical',
+                outline: 'none',
+                marginBottom: '20px',
+              }}
+            />
+
+            {state === 'error' && (
+              <div style={{ color: '#ff8080', fontSize: '13px', marginBottom: '12px' }}>
+                Something went wrong. Try again.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setShowModal(false)}
+                style={{
+                  padding: '8px 16px',
+                  background: 'transparent',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  borderRadius: '8px',
+                  color: 'rgba(255,255,255,0.6)',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submit}
+                disabled={state === 'loading'}
+                style={{
+                  padding: '8px 20px',
+                  background: 'linear-gradient(135deg, #7cff67 0%, #5227FF 100%)',
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: '#0a0a1a',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: state === 'loading' ? 'not-allowed' : 'pointer',
+                  opacity: state === 'loading' ? 0.6 : 1,
+                }}
+              >
+                {state === 'loading' ? 'Sending…' : 'Send Request'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </>
+  )
+}
+
 export default function Navbar() {
   const { selectedAthlete, setSelectedAthlete } = useDashboard()
+  const { user, role, signOut } = useAuth()
   const { data: athletesRaw, isError, error } = useQuery({
     queryKey: ['athletes'],
     queryFn: athleteApi.list,
@@ -143,9 +291,10 @@ export default function Navbar() {
       position: 'sticky',
       top: 0,
       zIndex: 100,
+      gap: '12px',
     }}>
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginRight: '32px', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginRight: '20px', flexShrink: 0 }}>
         <div style={{
           width: '32px', height: '32px',
           background: 'var(--primary)',
@@ -185,18 +334,49 @@ export default function Navbar() {
         ))}
       </div>
 
-      {/* Athlete selector */}
-      {isError ? (
-        <span style={{ fontSize: '12px', color: '#F44336', maxWidth: 220 }} title={error?.message}>
-          Athletes failed to load
-        </span>
-      ) : (
-        <AthleteDropdown
-          athletes={athletes}
-          selectedAthlete={selectedAthlete}
-          setSelectedAthlete={setSelectedAthlete}
-        />
-      )}
+      {/* Right side controls */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+        {/* Request Coach Access — only shown to athletes */}
+        {role === 'athlete' && (
+          <CoachRequestButton userEmail={user?.email} />
+        )}
+
+        {/* Athlete selector — only for coaches */}
+        {role === 'coach' && (
+          isError ? (
+            <span style={{ fontSize: '12px', color: '#F44336', maxWidth: 220 }} title={error?.message}>
+              Athletes failed to load
+            </span>
+          ) : (
+            <AthleteDropdown
+              athletes={athletes}
+              selectedAthlete={selectedAthlete}
+              setSelectedAthlete={setSelectedAthlete}
+            />
+          )
+        )}
+
+        {/* Sign out */}
+        {user && (
+          <button
+            onClick={signOut}
+            style={{
+              padding: '5px 10px',
+              background: 'transparent',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '7px',
+              color: 'rgba(255,255,255,0.4)',
+              fontSize: '12px',
+              cursor: 'pointer',
+              transition: 'color 0.15s, border-color 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
+          >
+            Sign out
+          </button>
+        )}
+      </div>
     </nav>
   )
 }
