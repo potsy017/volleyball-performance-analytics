@@ -300,14 +300,11 @@ export default function MainDashboard() {
       {/* Athlete performance radar (selected athlete only) */}
       {selectedAthlete && (
         <div className="card" style={{ marginBottom: "20px" }}>
-          <div
-            style={{
-              fontSize: "13px",
-              fontWeight: 500,
-              marginBottom: "12px",
-            }}
-          >
-            Performance radar — indexed vs 30-day baseline
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ fontSize: "13px", fontWeight: 500 }}>Performance radar — indexed vs 30-day baseline</div>
+            <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "3px" }}>
+              Each axis scored 0–100 relative to 30-day baseline. Explosive Power = peak velocity (GymAware) · Volume = total jumps (BMP) · Intensity = high jumps ≥40 cm (BMP) · Fitness = load/min (Catapult) · ACWR Safety = 7d÷28d load ratio · Recovery &amp; Sleep Eff from WHOOP (if connected).
+            </div>
           </div>
           {radarLoading ? (
             <LoadingSpinner message="Building radar profile..." />
@@ -336,9 +333,7 @@ export default function MainDashboard() {
               margin: "0 0 12px",
             }}
           >
-            Workload shock (Catapult ACWR), tissue repair (WHOOP deep sleep), and
-            neuromuscular power (Catapult max jump vs 30-day ceiling). 14-day view;
-            jump + load update daily for all roster athletes.
+            3 risk panels — 14-day view, 30-day baseline. <strong style={{color:"var(--text-primary)"}}>Workload (A):</strong> ACWR = 7d avg load ÷ 28d avg load; red if &gt;1.5. <strong style={{color:"var(--text-primary)"}}>Repair (B):</strong> WHOOP deep sleep hours; red if below 30d floor. <strong style={{color:"var(--text-primary)"}}>Neuromuscular (C):</strong> max jump height vs 30d ceiling (or high-band ratio if &lt;3 height days). Critical day = all 3 in red simultaneously.
           </p>
           <TriadRiskCharts triadData={triadRisk} loading={triadLoading} />
         </div>
@@ -363,8 +358,7 @@ export default function MainDashboard() {
               margin: "0 0 12px",
             }}
           >
-            Load (Catapult) vs strain (WHOOP) per session — last 30 days. Purple
-            line = 30-day efficiency baseline; blue = last 3 days.
+            One point per Catapult session matched to same-day WHOOP strain — last 30 days. X = player load (AU), Y = WHOOP cycle strain. Efficiency index = load ÷ strain. <strong style={{color:"var(--text-primary)"}}>Peaking</strong> = high load, low strain (efficient). <strong style={{color:"var(--text-primary)"}}>Fatigued</strong> = low load, high strain (costly). Purple dashed = 30-day baseline; blue = last 3 sessions.
           </p>
           <EfficiencyScatterChart
             data={efficiencyScatter}
@@ -409,14 +403,14 @@ export default function MainDashboard() {
                 label="Total Jumps"
                 value={kpis?.latest_total_jumps}
                 decimals={0}
-                sub="BMP daily total"
+                sub="BMP daily total · ≥40 cm"
                 color="#81C784"
               />
               <KPICard
                 label="High Jumps"
                 value={kpis?.latest_high_jumps}
                 decimals={0}
-                sub="BMP daily total"
+                sub="BMP daily total · ≥40 cm"
                 color="#F5C400"
               />
               <KPICard
@@ -466,14 +460,14 @@ export default function MainDashboard() {
                 label="Avg Total Jumps"
                 value={kpis?.avg_total_jumps}
                 decimals={0}
-                sub={`${days}-day BMP avg`}
+                sub={`${days}-day BMP avg · ≥40 cm`}
                 color="#81C784"
               />
               <KPICard
                 label="Avg High Jumps"
                 value={kpis?.avg_high_jumps}
                 decimals={0}
-                sub={`${days}-day BMP avg`}
+                sub={`${days}-day BMP avg · ≥40 cm`}
                 color="#F5C400"
               />
               <KPICard
@@ -538,14 +532,14 @@ export default function MainDashboard() {
                 label="Total Jumps"
                 value={kpis?.latest_total_jumps}
                 decimals={0}
-                sub="BMP daily total"
+                sub="BMP daily total · ≥40 cm"
                 color="#81C784"
               />
               <KPICard
                 label="High Jumps"
                 value={kpis?.latest_high_jumps}
                 decimals={0}
-                sub="BMP daily total"
+                sub="BMP daily total · ≥40 cm"
                 color="#F5C400"
               />
               <KPICard
@@ -661,7 +655,7 @@ export default function MainDashboard() {
                 <span
                   style={{ fontSize: "11px", color: "var(--text-secondary)" }}
                 >
-                  bars = player load · line = load/min
+                  bars = player load (AU) · line = load/min · source: Catapult
                 </span>
               </div>
               <ComboChart
@@ -681,14 +675,11 @@ export default function MainDashboard() {
               onClick={() => navigate("/catapult")}
               style={{ cursor: "pointer" }}
             >
-              <div
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  marginBottom: "16px",
-                }}
-              >
-                Daily Total Jumps (BMP)
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 500 }}>Daily Total Jumps (BMP)</div>
+                <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                  BMP events with jump_attribute &gt; 0 · summed per calendar day
+                </div>
               </div>
               <TrendLineChart
                 data={dailyJumps}
@@ -710,14 +701,11 @@ export default function MainDashboard() {
               onClick={() => navigate("/catapult")}
               style={{ cursor: "pointer" }}
             >
-              <div
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  marginBottom: "16px",
-                }}
-              >
-                High Jump Count (BMP)
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 500 }}>High Jump Count (BMP ≥40 cm)</div>
+                <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                  BMP events with jump_attribute ≥57 cs (~0.57 s flight → ≥40 cm) · summed per day
+                </div>
               </div>
               <TrendLineChart
                 data={dailyJumps.length ? dailyJumps : catapultRows}
@@ -739,14 +727,11 @@ export default function MainDashboard() {
               onClick={() => navigate("/whoop")}
               style={{ cursor: "pointer" }}
             >
-              <div
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  marginBottom: "16px",
-                }}
-              >
-                HRV + Resting HR
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 500 }}>HRV + Resting HR</div>
+                <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                  HRV = rMSSD (ms) from WHOOP recovery · resting HR = overnight lowest (bpm)
+                </div>
               </div>
               <TrendLineChart
                 data={whoopRows}
@@ -774,14 +759,11 @@ export default function MainDashboard() {
               onClick={() => navigate("/gymaware")}
               style={{ cursor: "pointer" }}
             >
-              <div
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  marginBottom: "16px",
-                }}
-              >
-                Peak Velocity Trend
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 500 }}>Peak Velocity Trend</div>
+                <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                  Max bar speed (m/s) per GymAware session · indexed vs 30-day avg baseline
+                </div>
               </div>
               <TrendLineChart
                 data={summary.filter((r) => r.source === "gymaware")}
@@ -951,7 +933,7 @@ export default function MainDashboard() {
                     <th>Last Session</th>
                     <th>Player Load</th>
                     <th>Load/min</th>
-                    <th>High Jumps</th>
+                    <th title="BMP events ≥40 cm (jump_attribute ≥57 cs)">High Jumps ↑≥40cm</th>
                     <th>Total Jumps</th>
                     <th>HRV</th>
                     <th>Recovery</th>

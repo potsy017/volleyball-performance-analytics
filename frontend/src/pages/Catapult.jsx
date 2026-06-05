@@ -357,7 +357,7 @@ export default function Catapult() {
           color="#C8E600"
         />
         <KPICard
-          label="High Jumps"
+          label="High Jumps (≥40 cm)"
           value={latestWithJumps.high_jump_count}
           decimals={0}
           sub={
@@ -576,7 +576,7 @@ export default function Catapult() {
                   <th>Activity</th>
                   <th>Player Load</th>
                   <th>Load/min</th>
-                  <th>High Jumps</th>
+                  <th title="BMP events ≥40 cm (jump_attribute ≥57 cs)">High Jumps ≥40cm</th>
                   <th>Total Jumps</th>
                   <th>Distance (m)</th>
                   <th>Field Time</th>
