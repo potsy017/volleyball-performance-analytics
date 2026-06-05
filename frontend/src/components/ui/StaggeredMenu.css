@@ -9,7 +9,7 @@
 }
 
 .staggered-menu-header {
-  display: none; /* handled by Navbar directly */
+  display: none; /* Its handled by Navbar directly */
 }
 
 .sm-prelayers {
