@@ -817,7 +817,7 @@ export default function MainDashboard() {
       {selectedAthlete && (
         <div className="card" style={{ marginBottom: "20px" }}>
           <div style={{ marginBottom: "12px" }}>
-            <div style={{ fontSize: "13px", fontWeight: 500 }}>Performance radar — indexed vs 30-day baseline</div>
+            <div style={{ fontSize: "13px", fontWeight: 500 }}>Performance radar: indexed vs 30-day baseline</div>
             <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "3px" }}>
               Each axis scored 0–100 relative to 30-day baseline. Explosive Power = peak velocity (GymAware) · Volume = total jumps (BMP) · Intensity = high jumps ≥40 cm (BMP) · Fitness = load/min (Catapult) · ACWR Safety = 7d÷28d load ratio · Recovery &amp; Sleep Eff from WHOOP (if connected).
             </div>
@@ -834,10 +834,10 @@ export default function MainDashboard() {
       {selectedAthlete && (
         <div className="card" style={{ marginBottom: "20px" }}>
           <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "4px" }}>
-            The Triad — predictive injury risk
+            The Triad: predictive injury risk
           </div>
           <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: "0 0 12px" }}>
-            3 risk panels — 14-day view, 30-day baseline. <strong style={{color:"var(--text-primary)"}}>Workload (A):</strong> ACWR = 7d avg load ÷ 28d avg load; red if &gt;1.5. <strong style={{color:"var(--text-primary)"}}>Repair (B):</strong> WHOOP deep sleep hours; red if below 30d floor. <strong style={{color:"var(--text-primary)"}}>Neuromuscular (C):</strong> max jump height vs 30d ceiling (or high-band ratio if &lt;3 height days). Critical day = all 3 in red simultaneously.
+            3 risk panels: 14-day view, 30-day baseline. <strong style={{color:"var(--text-primary)"}}>Workload (A):</strong> ACWR = 7d avg load ÷ 28d avg load; red if &gt;1.5. <strong style={{color:"var(--text-primary)"}}>Repair (B):</strong> WHOOP deep sleep hours; red if below 30d floor. <strong style={{color:"var(--text-primary)"}}>Neuromuscular (C):</strong> max jump height vs 30d ceiling (or high-band ratio if &lt;3 height days). Critical day = all 3 in red simultaneously.
           </p>
           <TriadRiskCharts triadData={triadRisk} loading={triadLoading} />
         </div>
@@ -850,7 +850,7 @@ export default function MainDashboard() {
             Internal vs external efficiency
           </div>
           <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: "0 0 12px" }}>
-            One point per Catapult session matched to same-day WHOOP strain — last 30 days. X = player load (AU), Y = WHOOP cycle strain. Efficiency index = load ÷ strain. <strong style={{color:"var(--text-primary)"}}>Peaking</strong> = high load, low strain (efficient). <strong style={{color:"var(--text-primary)"}}>Fatigued</strong> = low load, high strain (costly). Purple dashed = 30-day baseline; blue = last 3 sessions.
+            One point per Catapult session matched to same-day WHOOP strain: last 30 days. X = player load (AU), Y = WHOOP cycle strain. Efficiency index = load ÷ strain. <strong style={{color:"var(--text-primary)"}}>Peaking</strong> = high load, low strain (efficient). <strong style={{color:"var(--text-primary)"}}>Fatigued</strong> = low load, high strain (costly). Purple dashed = 30-day baseline; blue = last 3 sessions.
           </p>
           <EfficiencyScatterChart
             data={efficiencyScatter}
@@ -871,7 +871,7 @@ export default function MainDashboard() {
             }}
           >
             <div style={{ fontSize: "13px", fontWeight: 500 }}>
-              Team snapshot — latest data per athlete
+              Team snapshot: latest data per athlete
             </div>
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <LastSync data={summary} />
@@ -977,3 +977,4 @@ export default function MainDashboard() {
     </div>
   );
 }
+                                                                                                                                                                                                                                                                                                                        

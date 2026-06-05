@@ -200,10 +200,10 @@ export default function TriadRiskCharts({ triadData = null, loading = false }) {
   const neuroSubtitle = isRatioMode
     ? ratioFloor != null
       ? `high-band ratio · danger below ${ratioFloor}% (vs ~${ratioBaseline}% baseline)`
-      : 'high-band jump ratio — insufficient BMP data'
+      : 'high-band jump ratio: insufficient BMP data'
     : jumpFloor != null && jumpCeiling != null
       ? `max jump · danger below ${jumpFloor} cm (${jumpDropPct}% under ${jumpCeiling} cm ceiling)`
-      : 'max jump height — no BMP jump data in window'
+      : 'max jump height: no BMP jump data in window'
 
   const handleChartHover = (state) => {
     if (state?.activeLabel) setHoverDate(state.activeLabel)
@@ -234,7 +234,7 @@ export default function TriadRiskCharts({ triadData = null, loading = false }) {
             fontWeight: 600,
           }}
         >
-          Critical Risk — {hoverRow.calendar_date}: ACWR above {acwrHigh}, deep sleep
+          Critical Risk: {hoverRow.calendar_date}: ACWR above {acwrHigh}, deep sleep
           below {deepFloor}h, and {neuroRiskLabel} on the same day.
         </div>
       )}
@@ -257,7 +257,7 @@ export default function TriadRiskCharts({ triadData = null, loading = false }) {
       <div
         style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '10px' }}
       >
-        Hover any panel — crosshairs sync across all three. Catapult ACWR + jump metrics
+        Hover any panel: crosshairs sync across all three. Catapult ACWR + jump metrics
         update daily for full roster; deep sleep requires WHOOP.
       </div>
 

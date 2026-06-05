@@ -120,7 +120,7 @@ export default function EfficiencyScatterChart({
           }}
         >
           Recent sessions ({fatiguedRecent.length}) are trending{' '}
-          <strong>above</strong> the efficiency baseline — high strain for low court
+          <strong>above</strong> the efficiency baseline: high strain for low court
           load. Review readiness before heavy training.
         </div>
       )}
@@ -248,7 +248,7 @@ export default function EfficiencyScatterChart({
         >
           <strong style={{ color: '#93c5fd' }}>Below the line → Peaking</strong>
           <br />
-          High court load, lower strain than this athlete&apos;s norm — mechanical
+          High court load, lower strain than this athlete&apos;s norm: mechanical
           efficiency is strong.
         </div>
         <div

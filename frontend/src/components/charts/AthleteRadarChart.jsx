@@ -177,7 +177,7 @@ export default function AthleteRadarChart({
 
       >
 
-        {shapeLabel} — {populatedCount} of {axisCount} axes with data
+        {shapeLabel}: {populatedCount} of {axisCount} axes with data
 
         {playerData.current?.session_date
 
