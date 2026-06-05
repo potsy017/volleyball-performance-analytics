@@ -27,8 +27,13 @@ function RoleRedirect() {
 function CoachShell() {
   return (
     <DashboardProvider>
-      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0, pointerEvents: 'none' }}>
-        <DarkVeil speed={0.25} hueShift={0} noiseIntensity={0.04} warpAmount={0.8} resolutionScale={0.75} />
+      <div style={{
+        position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0, pointerEvents: 'none',
+        maskImage: 'linear-gradient(to bottom, black 0%, black 35%, transparent 60%)',
+        WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 35%, transparent 60%)',
+        opacity: 0.85,
+      }}>
+        <DarkVeil speed={0.3} hueShift={0} noiseIntensity={0.06} warpAmount={1.2} resolutionScale={1} />
       </div>
       <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh' }}>
         <Navbar />
