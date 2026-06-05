@@ -149,6 +149,7 @@ function SignupForm() {
     if (password.length < 6) { setError('Password must be at least 6 characters'); return }
     if (!/[A-Z]/.test(password)) { setError('Password must contain at least 1 uppercase letter'); return }
     if (!/[a-z]/.test(password)) { setError('Password must contain at least 1 lowercase letter'); return }
+    if (!/[0-9]/.test(password)) { setError('Password must contain at least 1 number'); return }
     if ((password.match(/[^A-Za-z0-9]/g) || []).length < 2) { setError('Password must contain at least 2 special characters'); return }
     setLoading(true)
     try {
