@@ -1,0 +1,33 @@
+name: CI ETL
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "etl/**"
+      - ".github/workflows/ci-etl.yml"
+      - ".github/workflows/daily-etl.yml"
+  pull_request:
+    branches: [main, master]
+    paths:
+      - "etl/**"
+
+defaults:
+  run:
+    working-directory: etl
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Byte-compile Python sources
+        run: python -m compileall -q -f .

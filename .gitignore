@@ -1,4 +1,10 @@
-# ── Environment & secrets ──────────────────────────────────────────────────────
+# ── ETL local exports (etl/.gitignore also applies) ───────────────────────────
+etl/**/exports/
+etl/logs/
+etl/*_export.json
+etl/load_index_result.json
+etl/vald_snapshot.json
+
 .env
 .env.*
 !.env.example

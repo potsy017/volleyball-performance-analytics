@@ -1,0 +1,11 @@
+# WHOOP Auth Bridge (etl/backend/app.py) — Railway service root = etl/
+# Dashboard API is repo root backend/ — separate Railway service.
+# See etl/docs/operations/deploy-railway-whoop-bridge.md
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "uvicorn backend.app:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/health"
+restartPolicyType = "on_failure"

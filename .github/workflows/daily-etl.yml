@@ -1,0 +1,74 @@
+# Nightly ETL — runs from etl/ (see etl/README_HANDOVER.md).
+# Repository Secrets: DATABASE_URL, CATAPULT_TOKEN, GYMAWARE_ACCOUNT_ID, GYMAWARE_TOKEN,
+#   VALD_CLIENT_ID, VALD_CLIENT_SECRET, WHOOP_CLIENT_ID, WHOOP_CLIENT_SECRET
+
+name: Daily ETL
+
+on:
+  schedule:
+    - cron: "15 6 * * *"
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: etl
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  ETL_MAX_ATTEMPTS: "2"
+  ETL_RETRY_DELAY_SECONDS: ${{ vars.ETL_RETRY_DELAY_SECONDS }}
+
+concurrency:
+  group: daily-etl-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  scheduled-etl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scheduled_etl.py (auto-retry once on failure)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CATAPULT_TOKEN: ${{ secrets.CATAPULT_TOKEN }}
+          CATAPULT_BASE_URL: ${{ secrets.CATAPULT_BASE_URL }}
+          GYMAWARE_ACCOUNT_ID: ${{ secrets.GYMAWARE_ACCOUNT_ID }}
+          GYMAWARE_TOKEN: ${{ secrets.GYMAWARE_TOKEN }}
+          VALD_CLIENT_ID: ${{ secrets.VALD_CLIENT_ID }}
+          VALD_CLIENT_SECRET: ${{ secrets.VALD_CLIENT_SECRET }}
+          WHOOP_CLIENT_ID: ${{ secrets.WHOOP_CLIENT_ID }}
+          WHOOP_CLIENT_SECRET: ${{ secrets.WHOOP_CLIENT_SECRET }}
+          ROSTER_FILTER: "1"
+          ROSTER_ALLOWLIST_XLSX: data/roster/roster_new.xlsx
+          SCHEDULED_GYMAWARE_LOOKBACK_DAYS: ${{ vars.SCHEDULED_GYMAWARE_LOOKBACK_DAYS }}
+          SCHEDULED_WHOOP_LOOKBACK_DAYS: ${{ vars.SCHEDULED_WHOOP_LOOKBACK_DAYS }}
+          SCHEDULED_LOAD_INDEX_LOOKBACK_DAYS: ${{ vars.SCHEDULED_LOAD_INDEX_LOOKBACK_DAYS }}
+          SCHEDULED_VALD_FORCEFRAME_LOOKBACK_DAYS: ${{ vars.SCHEDULED_VALD_FORCEFRAME_LOOKBACK_DAYS }}
+          SCHEDULED_VALD_FORCEDECKS_LOOKBACK_DAYS: ${{ vars.SCHEDULED_VALD_FORCEDECKS_LOOKBACK_DAYS }}
+        run: |
+          retry_delay="${ETL_RETRY_DELAY_SECONDS:-900}"
+          max_attempts="${ETL_MAX_ATTEMPTS:-2}"
+          attempt=1
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "::group::ETL attempt ${attempt}/${max_attempts}"
+            if python scheduled_etl.py --all --continue-on-error; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            if [ "$attempt" -ge "$max_attempts" ]; then
+              echo "ETL failed after ${max_attempts} attempt(s)."
+              exit 1
+            fi
+            echo "Attempt ${attempt} failed; waiting ${retry_delay}s before retry..."
+            sleep "$retry_delay"
+            attempt=$((attempt + 1))
+          done

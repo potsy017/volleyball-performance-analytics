@@ -2,7 +2,11 @@
 
 A full-stack performance dashboard for coaching staff, built on FastAPI + React. Aggregates GPS (Catapult), recovery (WHOOP), strength (GymAware), and force plate (VALD) data from Supabase **silver** tables into a single live interface.
 
-**ETL and silver DDL** live in the capstone toolkit repo: `Capstone-team54-volleyball-toolkit` — see `docs/operations/web_app_handover.md` and `docs/operations/vpa_application_updates.md` there.
+**ETL, silver DDL, WHOOP OAuth bridge, and nightly pipeline** live in **`etl/`** in this repo (client handover monorepo). Legacy repos (`Capstone-team54-volleyball-toolkit`, Beach bundle) can be archived after Railway/GitHub cutover.
+
+**Handover:** [`docs/HANDOVER.md`](docs/HANDOVER.md) · [`docs/COMPLETE_HANDOVER_PLAN.md`](docs/COMPLETE_HANDOVER_PLAN.md)
+
+**Railway:** dashboard service = repo root (`backend/` + `frontend/`); WHOOP bridge = **root directory `etl/`** (repoint from Beach repo).
 
 ---
 
@@ -10,7 +14,7 @@ A full-stack performance dashboard for coaching staff, built on FastAPI + React.
 
 ```
 Volleyball_Performance_Analysis/
-├── backend/                  # FastAPI app
+├── backend/                  # Dashboard FastAPI (coach API)
 │   ├── app/
 │   │   ├── main.py
 │   │   ├── core/config.py
@@ -28,15 +32,22 @@ Volleyball_Performance_Analysis/
 │   ├── requirements.txt
 │   └── .env                  # you create this (not committed)
 │
-└── frontend/                 # Vite + React
-    ├── src/
-    │   ├── App.jsx
-    │   ├── pages/            MainDashboard, Readiness, Gymaware, Catapult, Whoop, Vald, AthleteReport
-    │   ├── components/charts/   # see docs/CHARTS.md
-    │   ├── components/ui/    StatusBadge, KPICard, …
-    │   └── services/api.js
-    ├── package.json
-    └── vite.config.js        # proxies /api → backend :8000
+├── frontend/                 # Vite + React
+│   ├── src/
+│   │   ├── App.jsx
+│   │   ├── pages/            MainDashboard, Readiness, Gymaware, Catapult, Whoop, Vald, AthleteReport
+│   │   ├── components/charts/   # see docs/CHARTS.md
+│   │   ├── components/ui/    StatusBadge, KPICard, …
+│   │   └── services/api.js
+│   ├── package.json
+│   └── vite.config.js        # proxies /api → backend :8000
+│
+└── etl/                      # ETL + WHOOP bridge (separate Railway service, root dir etl/)
+    ├── backend/app.py        # WHOOP OAuth only — not the dashboard backend
+    ├── scheduled_etl.py
+    ├── schema/
+    ├── data/roster/
+    └── docs/operations/      # runbooks, README_HANDOVER.md
 ```
 
 ---
