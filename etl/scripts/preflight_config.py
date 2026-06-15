@@ -46,6 +46,12 @@ def check_database_url() -> int:
         print("[ERROR] DATABASE_URL not set.")
         return 1
 
+    parsed = urlparse(url)
+    host = (parsed.hostname or "").lower()
+    port = parsed.port or 5432
+    user = (parsed.username or "").split("@")[-1]
+    print(f"[INFO] DATABASE_URL host: {host}:{port} (user: {user or '(none)'})")
+
     _warn_direct_supabase_host(url)
 
     try:
