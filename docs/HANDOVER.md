@@ -50,8 +50,8 @@ Volleyball_Performance_Analysis/
 | `CATAPULT_TOKEN` | Yes |
 | `GYMAWARE_ACCOUNT_ID` | Yes |
 | `GYMAWARE_TOKEN` | Yes |
-| `VALD_CLIENT_ID` | Yes (skip nightly job with repo variable `SCHEDULED_SKIP_VALD=1` until creds renewed) |
-| `VALD_CLIENT_SECRET` | Yes (same) |
+| `VALD_CLIENT_ID` | Yes — OAuth client id from VALD (not `VALD_ORGANIZATION_ID`) |
+| `VALD_CLIENT_SECRET` | Yes |
 | `WHOOP_CLIENT_ID` | Yes |
 | `WHOOP_CLIENT_SECRET` | Yes |
 | `CATAPULT_BASE_URL` | Optional |
@@ -63,9 +63,7 @@ Volleyball_Performance_Analysis/
 
 **If workflow fails with `Network is unreachable` on `db.*.supabase.co` (IPv6)** — use Supabase **Session pooler** URI for `DATABASE_URL` in GitHub secrets (not direct `db.*.supabase.co`).
 
-**If workflow fails with VALD `401 Unauthorized`** — GitHub secrets cannot be read back after saving; request new API client credentials from VALD (see below). Until then set repository variable **`SCHEDULED_SKIP_VALD`** to `1` (default in workflow) so Catapult/GymAware/WHOOP still run nightly.
-
-**When VALD credentials arrive:** add `VALD_CLIENT_ID` and `VALD_CLIENT_SECRET` secrets, set **`SCHEDULED_SKIP_VALD`** to `0` (or delete the variable), re-run Daily ETL.
+**If workflow fails with VALD `401 Unauthorized`** — ensure GitHub secrets match `etl/.env` OAuth values (long alphanumeric `client_id`, not org id `21460`). To temporarily disable VALD only, set repository variable **`SCHEDULED_SKIP_VALD`** to `1`.
 
 **Check ETL locally:**
 

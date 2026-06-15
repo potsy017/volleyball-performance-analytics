@@ -1,6 +1,6 @@
 # Nightly ETL — runs from etl/ (see etl/README_HANDOVER.md).
-# Repository Secrets: DATABASE_URL, CATAPULT_TOKEN, GYMAWARE_* , WHOOP_* (see HANDOVER.md).
-# VALD_* optional while SCHEDULED_SKIP_VALD=1 (set var to 0 when credentials are renewed).
+# Repository Secrets: DATABASE_URL, CATAPULT_TOKEN, GYMAWARE_*, VALD_*, WHOOP_* (see HANDOVER.md).
+# Optional repo variable SCHEDULED_SKIP_VALD=1 only to temporarily disable VALD.
 
 name: Daily ETL
 
@@ -17,8 +17,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   ETL_MAX_ATTEMPTS: "2"
   ETL_RETRY_DELAY_SECONDS: ${{ vars.ETL_RETRY_DELAY_SECONDS }}
-  # Skip VALD until client credentials are re-issued (GitHub secrets are write-only).
-  SCHEDULED_SKIP_VALD: ${{ vars.SCHEDULED_SKIP_VALD || '1' }}
+  SCHEDULED_SKIP_VALD: ${{ vars.SCHEDULED_SKIP_VALD }}
 
 concurrency:
   group: daily-etl-${{ github.ref }}
@@ -47,14 +46,12 @@ jobs:
           VALD_CLIENT_SECRET: ${{ secrets.VALD_CLIENT_SECRET }}
           WHOOP_CLIENT_ID: ${{ secrets.WHOOP_CLIENT_ID }}
           WHOOP_CLIENT_SECRET: ${{ secrets.WHOOP_CLIENT_SECRET }}
-          SCHEDULED_SKIP_VALD: ${{ vars.SCHEDULED_SKIP_VALD || '1' }}
+          SCHEDULED_SKIP_VALD: ${{ vars.SCHEDULED_SKIP_VALD }}
         run: |
           missing=0
-          required="DATABASE_URL CATAPULT_TOKEN GYMAWARE_ACCOUNT_ID GYMAWARE_TOKEN WHOOP_CLIENT_ID WHOOP_CLIENT_SECRET"
-          if [ "${SCHEDULED_SKIP_VALD}" != "1" ] && [ "${SCHEDULED_SKIP_VALD}" != "true" ] && [ "${SCHEDULED_SKIP_VALD}" != "yes" ]; then
-            required="$required VALD_CLIENT_ID VALD_CLIENT_SECRET"
-          else
-            echo "[INFO] SCHEDULED_SKIP_VALD=${SCHEDULED_SKIP_VALD} — VALD secrets not required."
+          required="DATABASE_URL CATAPULT_TOKEN GYMAWARE_ACCOUNT_ID GYMAWARE_TOKEN VALD_CLIENT_ID VALD_CLIENT_SECRET WHOOP_CLIENT_ID WHOOP_CLIENT_SECRET"
+          if [ "${SCHEDULED_SKIP_VALD}" = "1" ] || [ "${SCHEDULED_SKIP_VALD}" = "true" ] || [ "${SCHEDULED_SKIP_VALD}" = "yes" ]; then
+            echo "[INFO] SCHEDULED_SKIP_VALD=${SCHEDULED_SKIP_VALD} — VALD secrets still required but export/upload will be skipped at runtime."
           fi
           for key in $required; do
             if [ -z "${!key}" ]; then
@@ -65,7 +62,7 @@ jobs:
           if [ "$missing" -ne 0 ]; then
             echo ""
             echo "Add secrets under: Settings → Secrets and variables → Actions → Repository secrets"
-            echo "Copy values from Capstone-team54-volleyball-toolkit repo secrets or local etl/.env"
+            echo "Copy values from etl/.env (OAuth client_id/secret — not VALD_ORGANIZATION_ID)."
             exit 1
           fi
           python scripts/preflight_config.py --check-db
@@ -88,7 +85,7 @@ jobs:
           SCHEDULED_LOAD_INDEX_LOOKBACK_DAYS: ${{ vars.SCHEDULED_LOAD_INDEX_LOOKBACK_DAYS }}
           SCHEDULED_VALD_FORCEFRAME_LOOKBACK_DAYS: ${{ vars.SCHEDULED_VALD_FORCEFRAME_LOOKBACK_DAYS }}
           SCHEDULED_VALD_FORCEDECKS_LOOKBACK_DAYS: ${{ vars.SCHEDULED_VALD_FORCEDECKS_LOOKBACK_DAYS }}
-          SCHEDULED_SKIP_VALD: ${{ vars.SCHEDULED_SKIP_VALD || '1' }}
+          SCHEDULED_SKIP_VALD: ${{ vars.SCHEDULED_SKIP_VALD }}
         run: |
           retry_delay="${ETL_RETRY_DELAY_SECONDS:-900}"
           max_attempts="${ETL_MAX_ATTEMPTS:-2}"
