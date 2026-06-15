@@ -1,6 +1,6 @@
 # Nightly ETL — runs from etl/ (see etl/README_HANDOVER.md).
-# Repository Secrets: DATABASE_URL, CATAPULT_TOKEN, GYMAWARE_ACCOUNT_ID, GYMAWARE_TOKEN,
-#   VALD_CLIENT_ID, VALD_CLIENT_SECRET, WHOOP_CLIENT_ID, WHOOP_CLIENT_SECRET
+# Repository Secrets: DATABASE_URL, CATAPULT_TOKEN, GYMAWARE_* , WHOOP_* (see HANDOVER.md).
+# VALD_* optional while SCHEDULED_SKIP_VALD=1 (set var to 0 when credentials are renewed).
 
 name: Daily ETL
 
@@ -17,6 +17,8 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
   ETL_MAX_ATTEMPTS: "2"
   ETL_RETRY_DELAY_SECONDS: ${{ vars.ETL_RETRY_DELAY_SECONDS }}
+  # Skip VALD until client credentials are re-issued (GitHub secrets are write-only).
+  SCHEDULED_SKIP_VALD: ${{ vars.SCHEDULED_SKIP_VALD || '1' }}
 
 concurrency:
   group: daily-etl-${{ github.ref }}
@@ -45,9 +47,16 @@ jobs:
           VALD_CLIENT_SECRET: ${{ secrets.VALD_CLIENT_SECRET }}
           WHOOP_CLIENT_ID: ${{ secrets.WHOOP_CLIENT_ID }}
           WHOOP_CLIENT_SECRET: ${{ secrets.WHOOP_CLIENT_SECRET }}
+          SCHEDULED_SKIP_VALD: ${{ vars.SCHEDULED_SKIP_VALD || '1' }}
         run: |
           missing=0
-          for key in DATABASE_URL CATAPULT_TOKEN GYMAWARE_ACCOUNT_ID GYMAWARE_TOKEN VALD_CLIENT_ID VALD_CLIENT_SECRET WHOOP_CLIENT_ID WHOOP_CLIENT_SECRET; do
+          required="DATABASE_URL CATAPULT_TOKEN GYMAWARE_ACCOUNT_ID GYMAWARE_TOKEN WHOOP_CLIENT_ID WHOOP_CLIENT_SECRET"
+          if [ "${SCHEDULED_SKIP_VALD}" != "1" ] && [ "${SCHEDULED_SKIP_VALD}" != "true" ] && [ "${SCHEDULED_SKIP_VALD}" != "yes" ]; then
+            required="$required VALD_CLIENT_ID VALD_CLIENT_SECRET"
+          else
+            echo "[INFO] SCHEDULED_SKIP_VALD=${SCHEDULED_SKIP_VALD} — VALD secrets not required."
+          fi
+          for key in $required; do
             if [ -z "${!key}" ]; then
               echo "::error::Missing repository secret: $key"
               missing=1
@@ -79,6 +88,7 @@ jobs:
           SCHEDULED_LOAD_INDEX_LOOKBACK_DAYS: ${{ vars.SCHEDULED_LOAD_INDEX_LOOKBACK_DAYS }}
           SCHEDULED_VALD_FORCEFRAME_LOOKBACK_DAYS: ${{ vars.SCHEDULED_VALD_FORCEFRAME_LOOKBACK_DAYS }}
           SCHEDULED_VALD_FORCEDECKS_LOOKBACK_DAYS: ${{ vars.SCHEDULED_VALD_FORCEDECKS_LOOKBACK_DAYS }}
+          SCHEDULED_SKIP_VALD: ${{ vars.SCHEDULED_SKIP_VALD || '1' }}
         run: |
           retry_delay="${ETL_RETRY_DELAY_SECONDS:-900}"
           max_attempts="${ETL_MAX_ATTEMPTS:-2}"

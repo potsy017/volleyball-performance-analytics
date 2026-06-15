@@ -50,8 +50,8 @@ Volleyball_Performance_Analysis/
 | `CATAPULT_TOKEN` | Yes |
 | `GYMAWARE_ACCOUNT_ID` | Yes |
 | `GYMAWARE_TOKEN` | Yes |
-| `VALD_CLIENT_ID` | Yes |
-| `VALD_CLIENT_SECRET` | Yes |
+| `VALD_CLIENT_ID` | Yes (skip nightly job with repo variable `SCHEDULED_SKIP_VALD=1` until creds renewed) |
+| `VALD_CLIENT_SECRET` | Yes (same) |
 | `WHOOP_CLIENT_ID` | Yes |
 | `WHOOP_CLIENT_SECRET` | Yes |
 | `CATAPULT_BASE_URL` | Optional |
@@ -61,7 +61,11 @@ Volleyball_Performance_Analysis/
 
 **If workflow fails immediately with "Missing repository secret"** — secrets are not set on **Volleyball_Performance_Analysis** yet (moving repo does not copy secrets).
 
-**If workflow fails with `Network is unreachable` on `db.*.supabase.co` (IPv6)** — local `.env` often uses Supabase **direct** connection, which works on your PC but not on GitHub Actions. In Supabase → **Project Settings → Database → Connect**, choose **Session pooler**, copy the URI (host `aws-0-<region>.pooler.supabase.com`, user `postgres.<project-ref>`), and update the `DATABASE_URL` repository secret. Keep the direct URI in local `.env` if you prefer; CI needs the pooler.
+**If workflow fails with `Network is unreachable` on `db.*.supabase.co` (IPv6)** — use Supabase **Session pooler** URI for `DATABASE_URL` in GitHub secrets (not direct `db.*.supabase.co`).
+
+**If workflow fails with VALD `401 Unauthorized`** — GitHub secrets cannot be read back after saving; request new API client credentials from VALD (see below). Until then set repository variable **`SCHEDULED_SKIP_VALD`** to `1` (default in workflow) so Catapult/GymAware/WHOOP still run nightly.
+
+**When VALD credentials arrive:** add `VALD_CLIENT_ID` and `VALD_CLIENT_SECRET` secrets, set **`SCHEDULED_SKIP_VALD`** to `0` (or delete the variable), re-run Daily ETL.
 
 **Check ETL locally:**
 

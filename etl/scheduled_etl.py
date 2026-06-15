@@ -12,7 +12,7 @@ Examples:
 
 Env (optional defaults for lookback windows):
   SCHEDULED_GYMAWARE_LOOKBACK_DAYS, SCHEDULED_WHOOP_LOOKBACK_DAYS,
-  SCHEDULED_LOAD_INDEX_LOOKBACK_DAYS, SCHEDULED_SKIP_ROSTER_SYNC
+  SCHEDULED_LOAD_INDEX_LOOKBACK_DAYS, SCHEDULED_SKIP_ROSTER_SYNC, SCHEDULED_SKIP_VALD
 
 Load index: after load_index.py, runs upload_load_index_to_supabase.py (needs DATABASE_URL).
 Catapult jump events: after stats upload, catapult_jump_events.py + upload (same date window as load index when using --all).
@@ -283,6 +283,15 @@ def main() -> int:
         if unknown:
             parser.error(f"Unknown sources: {unknown}. Valid: {list(KNOWN_SOURCES)}")
         want = raw
+
+    skip_vald = os.getenv("SCHEDULED_SKIP_VALD", "").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    if skip_vald and "vald" in want:
+        want = [s for s in want if s != "vald"]
+        print("[INFO] SCHEDULED_SKIP_VALD=1 — skipping VALD export/upload steps.", flush=True)
 
     ga_start, ga_end = _utc_inclusive_range(args.gymaware_lookback_days)
     li_start, li_end = _utc_inclusive_range(args.load_index_lookback_days)
