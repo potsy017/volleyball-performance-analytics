@@ -35,6 +35,32 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Preflight — required GitHub Actions secrets
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CATAPULT_TOKEN: ${{ secrets.CATAPULT_TOKEN }}
+          GYMAWARE_ACCOUNT_ID: ${{ secrets.GYMAWARE_ACCOUNT_ID }}
+          GYMAWARE_TOKEN: ${{ secrets.GYMAWARE_TOKEN }}
+          VALD_CLIENT_ID: ${{ secrets.VALD_CLIENT_ID }}
+          VALD_CLIENT_SECRET: ${{ secrets.VALD_CLIENT_SECRET }}
+          WHOOP_CLIENT_ID: ${{ secrets.WHOOP_CLIENT_ID }}
+          WHOOP_CLIENT_SECRET: ${{ secrets.WHOOP_CLIENT_SECRET }}
+        run: |
+          missing=0
+          for key in DATABASE_URL CATAPULT_TOKEN GYMAWARE_ACCOUNT_ID GYMAWARE_TOKEN VALD_CLIENT_ID VALD_CLIENT_SECRET WHOOP_CLIENT_ID WHOOP_CLIENT_SECRET; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing repository secret: $key"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo ""
+            echo "Add secrets under: Settings → Secrets and variables → Actions → Repository secrets"
+            echo "Copy values from Capstone-team54-volleyball-toolkit repo secrets or local etl/.env"
+            exit 1
+          fi
+          python scripts/preflight_config.py
+
       - name: Run scheduled_etl.py (auto-retry once on failure)
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

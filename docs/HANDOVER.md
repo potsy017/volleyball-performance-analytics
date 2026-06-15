@@ -42,10 +42,24 @@ Volleyball_Performance_Analysis/
 ### 2. GitHub Actions (nightly ETL)
 
 1. Push this repo to GitHub.
-2. **Settings → Secrets and variables → Actions** — copy secrets from the **toolkit** repo if ETL ran there:
-   - `DATABASE_URL`, `CATAPULT_TOKEN`, `GYMAWARE_*`, `VALD_*`, `WHOOP_CLIENT_ID`, `WHOOP_CLIENT_SECRET`
+2. **Settings → Secrets and variables → Actions → Repository secrets** — add (copy from **toolkit** repo or `etl/.env`):
+
+| Secret | Required |
+|--------|----------|
+| `DATABASE_URL` | Yes |
+| `CATAPULT_TOKEN` | Yes |
+| `GYMAWARE_ACCOUNT_ID` | Yes |
+| `GYMAWARE_TOKEN` | Yes |
+| `VALD_CLIENT_ID` | Yes |
+| `VALD_CLIENT_SECRET` | Yes |
+| `WHOOP_CLIENT_ID` | Yes |
+| `WHOOP_CLIENT_SECRET` | Yes |
+| `CATAPULT_BASE_URL` | Optional |
+
 3. **Actions → Daily ETL → Run workflow** (manual) to verify.
 4. Disable or archive `daily_etl.yml` on the old toolkit repo to avoid double runs.
+
+**If workflow fails immediately with "Missing repository secret"** — secrets are not set on **Volleyball_Performance_Analysis** yet (moving repo does not copy secrets).
 
 **Check ETL locally:**
 
