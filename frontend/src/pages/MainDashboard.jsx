@@ -42,6 +42,7 @@ export default function MainDashboard() {
     "total_jumps",
     "high_jumps",
     "hrv",
+    "velocity",
   ]);
   const [kpiMode, setKpiMode] = useState("latest"); // 'latest' | 'avg'
   const [primaryMetric, setPrimaryMetric] = useState("total_player_load");
@@ -305,82 +306,6 @@ export default function MainDashboard() {
         ))}
       </div>
 
-      {/* Athlete performance radar (selected athlete only) */}
-      {selectedAthlete && (
-        <div className="card" style={{ marginBottom: "20px" }}>
-          <div
-            style={{
-              fontSize: "13px",
-              fontWeight: 500,
-              marginBottom: "12px",
-            }}
-          >
-            Performance radar — indexed vs 30-day baseline
-          </div>
-          {radarLoading ? (
-            <LoadingSpinner message="Building radar profile..." />
-          ) : (
-            <AthleteRadarChart playerData={radarMetrics} height={300} />
-          )}
-        </div>
-      )}
-
-      {/* Triad — predictive injury risk (selected athlete) */}
-      {selectedAthlete && (
-        <div className="card" style={{ marginBottom: "20px" }}>
-          <div
-            style={{
-              fontSize: "13px",
-              fontWeight: 500,
-              marginBottom: "4px",
-            }}
-          >
-            The Triad — predictive injury risk
-          </div>
-          <p
-            style={{
-              fontSize: "11px",
-              color: "var(--text-secondary)",
-              margin: "0 0 12px",
-            }}
-          >
-            Workload shock (Catapult ACWR), tissue repair (WHOOP deep sleep), and
-            neuromuscular power (Catapult max jump vs 30-day ceiling). 14-day view;
-            jump + load update daily for all roster athletes.
-          </p>
-          <TriadRiskCharts triadData={triadRisk} loading={triadLoading} />
-        </div>
-      )}
-
-      {/* Internal vs external efficiency (selected athlete) */}
-      {selectedAthlete && (
-        <div className="card" style={{ marginBottom: "20px" }}>
-          <div
-            style={{
-              fontSize: "13px",
-              fontWeight: 500,
-              marginBottom: "4px",
-            }}
-          >
-            Internal vs external efficiency
-          </div>
-          <p
-            style={{
-              fontSize: "11px",
-              color: "var(--text-secondary)",
-              margin: "0 0 12px",
-            }}
-          >
-            Load (Catapult) vs strain (WHOOP) per session — last 30 days. Purple
-            line = 30-day efficiency baseline; blue = last 3 days.
-          </p>
-          <EfficiencyScatterChart
-            data={efficiencyScatter}
-            loading={efficiencyLoading}
-          />
-        </div>
-      )}
-
       {/* KPI Row */}
       {kpisLoading ? (
         <LoadingSpinner message="Loading metrics..." />
@@ -641,7 +566,7 @@ export default function MainDashboard() {
                 <span
                   style={{ fontSize: "11px", color: "var(--text-secondary)" }}
                 >
-                  bars = player load · line = load/min
+                  bars = player load (AU) · line = load/min · source: Catapult
                 </span>
               </div>
               <ComboChart
@@ -737,14 +662,11 @@ export default function MainDashboard() {
               onClick={() => navigate("/whoop")}
               style={{ cursor: "pointer" }}
             >
-              <div
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  marginBottom: "16px",
-                }}
-              >
-                HRV + Resting HR
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 500 }}>HRV + Resting HR</div>
+                <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                  HRV = rMSSD (ms) from WHOOP recovery · resting HR = overnight lowest (bpm)
+                </div>
               </div>
               <TrendLineChart
                 data={whoopRows}
@@ -772,14 +694,11 @@ export default function MainDashboard() {
               onClick={() => navigate("/gymaware")}
               style={{ cursor: "pointer" }}
             >
-              <div
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  marginBottom: "16px",
-                }}
-              >
-                Peak Velocity Trend
+              <div style={{ marginBottom: "16px" }}>
+                <div style={{ fontSize: "13px", fontWeight: 500 }}>Peak Velocity Trend</div>
+                <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "2px" }}>
+                  Max bar speed (m/s) per GymAware session · indexed vs 30-day avg baseline
+                </div>
               </div>
               <TrendLineChart
                 data={summary.filter((r) => r.source === "gymaware")}
@@ -898,6 +817,52 @@ export default function MainDashboard() {
         </div>
       )}
 
+      {/* Athlete performance radar (selected athlete only) */}
+      {selectedAthlete && (
+        <div className="card" style={{ marginBottom: "20px" }}>
+          <div style={{ marginBottom: "12px" }}>
+            <div style={{ fontSize: "13px", fontWeight: 500 }}>Performance radar: indexed vs 30-day baseline</div>
+            <div style={{ fontSize: "11px", color: "var(--text-secondary)", marginTop: "3px" }}>
+              Each axis scored 0–100 relative to 30-day baseline. Explosive Power = peak velocity (GymAware) · Volume = total jumps (BMP) · Intensity = high jumps ≥40 cm (BMP) · Fitness = load/min (Catapult) · ACWR Safety = 7d÷28d load ratio · Recovery &amp; Sleep Eff from WHOOP (if connected).
+            </div>
+          </div>
+          {radarLoading ? (
+            <LoadingSpinner message="Building radar profile..." />
+          ) : (
+            <AthleteRadarChart playerData={radarMetrics} height={300} />
+          )}
+        </div>
+      )}
+
+      {/* Triad — predictive injury risk (selected athlete) */}
+      {selectedAthlete && (
+        <div className="card" style={{ marginBottom: "20px" }}>
+          <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "4px" }}>
+            The Triad: predictive injury risk
+          </div>
+          <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: "0 0 12px" }}>
+            3 risk panels: 14-day view, 30-day baseline. <strong style={{color:"var(--text-primary)"}}>Workload (A):</strong> ACWR = 7d avg load ÷ 28d avg load; red if &gt;1.5. <strong style={{color:"var(--text-primary)"}}>Repair (B):</strong> WHOOP deep sleep hours; red if below 30d floor. <strong style={{color:"var(--text-primary)"}}>Neuromuscular (C):</strong> max jump height vs 30d ceiling (or high-band ratio if &lt;3 height days). Critical day = all 3 in red simultaneously.
+          </p>
+          <TriadRiskCharts triadData={triadRisk} loading={triadLoading} />
+        </div>
+      )}
+
+      {/* Internal vs external efficiency (selected athlete) */}
+      {selectedAthlete && (
+        <div className="card" style={{ marginBottom: "20px" }}>
+          <div style={{ fontSize: "13px", fontWeight: 500, marginBottom: "4px" }}>
+            Internal vs external efficiency
+          </div>
+          <p style={{ fontSize: "11px", color: "var(--text-secondary)", margin: "0 0 12px" }}>
+            One point per Catapult session matched to same-day WHOOP strain: last 30 days. X = player load (AU), Y = WHOOP cycle strain. Efficiency index = load ÷ strain. <strong style={{color:"var(--text-primary)"}}>Peaking</strong> = high load, low strain (efficient). <strong style={{color:"var(--text-primary)"}}>Fatigued</strong> = low load, high strain (costly). Purple dashed = 30-day baseline; blue = last 3 sessions.
+          </p>
+          <EfficiencyScatterChart
+            data={efficiencyScatter}
+            loading={efficiencyLoading}
+          />
+        </div>
+      )}
+
       {/* Team snapshot */}
       {!selectedAthlete && (
         <div className="card">
@@ -910,7 +875,7 @@ export default function MainDashboard() {
             }}
           >
             <div style={{ fontSize: "13px", fontWeight: 500 }}>
-              Team snapshot — latest data per athlete
+              Team snapshot: latest data per athlete
             </div>
             <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
               <LastSync data={summary} />

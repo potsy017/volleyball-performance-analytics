@@ -178,7 +178,7 @@ export default function Gymaware() {
       {selectedAthlete && exercise && trendData.length > 0 && (
         <div className="card" style={{ marginBottom: '20px' }}>
           <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '16px' }}>
-            Velocity trend — {exercise}
+            Velocity trend: {exercise}
             <span style={{ fontSize: '11px', color: 'var(--text-secondary)', marginLeft: '8px' }}>today vs PB</span>
           </div>
           <TrendLineChart
@@ -196,7 +196,7 @@ export default function Gymaware() {
       {selectedAthlete && exercise && (
         <div className="card" style={{ marginBottom: '20px' }}>
           <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '4px' }}>
-            Load–velocity profile — {exercise}
+            Load–velocity profile: {exercise}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center', marginBottom: '14px' }}>
             <div className="toggle-group">
@@ -302,7 +302,7 @@ export default function Gymaware() {
                 <span>📐</span>
                 <strong>Load-Velocity Profile</strong>
                 <span style={{ color: 'var(--text-secondary)', marginLeft: '4px' }}>
-                  — linear regression across sets · V0 = theoretical max velocity (unloaded) · L0 = theoretical max load (zero velocity)
+                  : linear regression across sets · V0 = theoretical max velocity (unloaded) · L0 = theoretical max load (zero velocity)
                 </span>
               </div>
 
@@ -475,7 +475,7 @@ export default function Gymaware() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ fontSize: '13px', fontWeight: 500 }}>Personal best records</div>
           <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
-            ⚠ PBs reflect current dataset only — not all-time records
+            ⚠ PBs reflect current dataset only: not all-time records
           </div>
         </div>
         {pbLoading ? <LoadingSpinner /> : (

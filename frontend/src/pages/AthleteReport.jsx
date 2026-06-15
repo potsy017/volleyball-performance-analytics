@@ -124,7 +124,7 @@ export default function AthleteReport() {
       }}>
         <button className="toggle-btn" onClick={() => navigate(-1)}>← Back</button>
         <span style={{ color: 'var(--text-secondary)', fontSize: '13px', flex: 1 }}>
-          Athlete Report — {athleteName} — last {REPORT_DAYS} days
+          Athlete Report: {athleteName}: last {REPORT_DAYS} days
         </span>
         <button
           className="toggle-btn active"
@@ -160,7 +160,7 @@ export default function AthleteReport() {
                   {athleteName}
                 </h1>
                 <div style={{ fontSize: '13px', color: '#555' }}>
-                  Performance Report — last {REPORT_DAYS} days
+                  Performance Report: last {REPORT_DAYS} days
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
@@ -185,7 +185,7 @@ export default function AthleteReport() {
 
             {/* Training load table */}
             {catSessions.length > 0 && (
-              <Section title="Training Load — Session Log">
+              <Section title="Training Load: Session Log">
                 <ReportTable
                   headers={['Date', 'Activity', 'Player Load', 'Load/min', 'High Jumps', 'Distance (m)', 'Field Time']}
                   rows={catSessions.slice(0, 15).map(r => [
@@ -266,7 +266,7 @@ export default function AthleteReport() {
 
             {/* Footer */}
             <div style={{ marginTop: '32px', paddingTop: '12px', borderTop: '1px solid #ddd', fontSize: '10px', color: '#aaa', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Volleyball Performance Analytics — Confidential</span>
+              <span>Volleyball Performance Analytics: Confidential</span>
               <span>PBs reflect current dataset only, not all-time records.</span>
             </div>
           </>

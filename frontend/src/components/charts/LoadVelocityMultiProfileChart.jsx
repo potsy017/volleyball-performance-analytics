@@ -149,7 +149,7 @@ export default function LoadVelocityMultiProfileChart({
       {hiddenCount > 0 && (
         <p style={{ fontSize: '11px', color: '#F5C400', marginBottom: '10px', lineHeight: 1.45 }}>
           Showing the most recent {filteredProfiles.length} of {totalSessions} sessions.
-          Older sessions are hidden to reduce clutter — change &quot;Sessions shown&quot; above to compare specific dates.
+          Older sessions are hidden to reduce clutter: change &quot;Sessions shown&quot; above to compare specific dates.
         </p>
       )}
 

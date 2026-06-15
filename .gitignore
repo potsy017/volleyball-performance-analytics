@@ -5,6 +5,7 @@ etl/*_export.json
 etl/load_index_result.json
 etl/vald_snapshot.json
 
+# ── Environment and secrets ────────────────────────────────────────────────────
 .env
 .env.*
 !.env.example
@@ -37,7 +38,7 @@ htmlcov/
 coverage.xml
 *.cover
 
-# ── Node / Frontend ────────────────────────────────────────────────────────────
+# ── Node and frontend ──────────────────────────────────────────────────────────
 node_modules/
 frontend/dist/
 frontend/build/
@@ -47,21 +48,12 @@ frontend/.vite/
 .yarn/unplugged
 .pnp.*
 
-# ── IDE & editor ───────────────────────────────────────────────────────────────
+# ── IDE and editor ─────────────────────────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
-
-# ── Logs ───────────────────────────────────────────────────────────────────────
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # ── OS ─────────────────────────────────────────────────────────────────────────
 .DS_Store
@@ -71,3 +63,31 @@ yarn-error.log*
 .Trashes
 ehthumbs.db
 Desktop.ini
+Thumbs.db
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Docker ─────────────────────────────────────────────────────────────────────
+.docker/
+
+# ── Security and reports ───────────────────────────────────────────────────────
+vpa_vulnerability_report.md
+*_audit_report.*
+*_scan_report.*
+nikto_*.html
+zap_report.*
+testssl_report.*
+trivy_report.*
+slowloris_report.*
+slowpost_report.*
+
+# ── Temporary and test output ──────────────────────────────────────────────────
+*.tmp
+*.temp
+tmp/
+temp/
