@@ -59,7 +59,7 @@ jobs:
             echo "Copy values from Capstone-team54-volleyball-toolkit repo secrets or local etl/.env"
             exit 1
           fi
-          python scripts/preflight_config.py
+          python scripts/preflight_config.py --check-db
 
       - name: Run scheduled_etl.py (auto-retry once on failure)
         env:

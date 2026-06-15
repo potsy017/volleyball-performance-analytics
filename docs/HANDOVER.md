@@ -46,7 +46,7 @@ Volleyball_Performance_Analysis/
 
 | Secret | Required |
 |--------|----------|
-| `DATABASE_URL` | Yes |
+| `DATABASE_URL` | Yes — use **Session pooler** URI for GitHub Actions (not direct `db.*.supabase.co`; see below) |
 | `CATAPULT_TOKEN` | Yes |
 | `GYMAWARE_ACCOUNT_ID` | Yes |
 | `GYMAWARE_TOKEN` | Yes |
@@ -60,6 +60,8 @@ Volleyball_Performance_Analysis/
 4. Disable or archive `daily_etl.yml` on the old toolkit repo to avoid double runs.
 
 **If workflow fails immediately with "Missing repository secret"** — secrets are not set on **Volleyball_Performance_Analysis** yet (moving repo does not copy secrets).
+
+**If workflow fails with `Network is unreachable` on `db.*.supabase.co` (IPv6)** — local `.env` often uses Supabase **direct** connection, which works on your PC but not on GitHub Actions. In Supabase → **Project Settings → Database → Connect**, choose **Session pooler**, copy the URI (host `aws-0-<region>.pooler.supabase.com`, user `postgres.<project-ref>`), and update the `DATABASE_URL` repository secret. Keep the direct URI in local `.env` if you prefer; CI needs the pooler.
 
 **Check ETL locally:**
 
