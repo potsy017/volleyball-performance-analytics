@@ -1,0 +1,10 @@
+# Railway service: root directory = frontend/
+# Set VITE_* variables in Railway before deploy (baked into build).
+# See docs/DEPLOY_DEMO.md
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+restartPolicyType = "on_failure"

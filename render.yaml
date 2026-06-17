@@ -1,0 +1,36 @@
+# One-click demo deploy on Render (https://render.com/deploy)
+# After deploy: set VITE_API_URL on the web service to https://<vpa-api-host>/api
+
+services:
+  - type: web
+    name: vpa-api
+    runtime: docker
+    dockerfilePath: Dockerfile
+    dockerContext: backend
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: AUTH_ENABLED
+        value: "false"
+      - key: ALLOWED_ORIGINS
+        value: "*"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+
+  - type: web
+    name: vpa-web
+    runtime: docker
+    dockerfilePath: Dockerfile
+    dockerContext: frontend
+    plan: free
+    envVars:
+      - key: VITE_AUTH_DISABLED
+        value: "true"
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false

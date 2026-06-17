@@ -1,0 +1,10 @@
+# Railway service: root directory = backend/
+# See docs/DEPLOY_DEMO.md
+
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+healthcheckPath = "/api/health"
+restartPolicyType = "on_failure"

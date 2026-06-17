@@ -1,10 +1,25 @@
 # Volleyball Performance Analytics
 
+[![CI](https://github.com/potsy017/volleyball-performance-analytics/actions/workflows/ci-etl.yml/badge.svg)](https://github.com/potsy017/volleyball-performance-analytics/actions/workflows/ci-etl.yml)
+
 **Personal portfolio project** — capstone-built full-stack platform for multi-vendor athlete performance data.
 
 Aggregates GPS (Catapult), recovery (WHOOP), velocity-based strength (GymAware), and force plate (VALD) data through a bronze → silver ETL pipeline into Supabase, surfaced in a React coaching dashboard.
 
-> University capstone (Team 54). Not affiliated with any commercial client deployment.
+> University capstone (Team 54). Demo uses anonymised/sample data — not a production client deployment.
+
+---
+
+## Live demo
+
+**Deploy your own:** [docs/DEPLOY_DEMO.md](docs/DEPLOY_DEMO.md)
+
+| Platform | Action |
+|----------|--------|
+| **Render** | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/potsy017/volleyball-performance-analytics) |
+| **Railway** | Two services from this repo — `backend/` + `frontend/` ([guide](docs/DEPLOY_DEMO.md#option-a-railway-2-services)) |
+
+_Add your hosted URL here after deploy, e.g. **https://your-app.up.railway.app/dashboard**_
 
 ---
 
@@ -13,7 +28,7 @@ Aggregates GPS (Catapult), recovery (WHOOP), velocity-based strength (GymAware),
 | Area | What it does |
 |------|----------------|
 | **Dashboard** | ACWR, readiness RAG, performance radar, injury-risk triad, BMP jump analytics, load–velocity profiling |
-| **ETL** | Nightly-style orchestration (`scheduled_etl.py`), roster identity mapping, medallion schema |
+| **ETL** | Orchestration (`scheduled_etl.py`), roster identity mapping, medallion schema |
 | **WHOOP bridge** | FastAPI OAuth service for per-athlete token linking |
 | **Stack** | FastAPI · React 18 · Vite · TanStack Query · Recharts · Supabase Postgres |
 
@@ -25,19 +40,9 @@ Aggregates GPS (Catapult), recovery (WHOOP), velocity-based strength (GymAware),
 ├── backend/          # Dashboard API (FastAPI)
 ├── frontend/         # React UI
 ├── etl/              # ETL pipeline + WHOOP OAuth bridge
-│   ├── scheduled_etl.py
-│   ├── schema/
-│   └── integrations/
-├── docs/CHARTS.md    # Chart ↔ API reference
-└── SETUP.md          # Local development
+├── docs/DEPLOY_DEMO.md
+└── render.yaml       # Optional one-click Render deploy
 ```
-
----
-
-## Screenshots
-
-UI: main dashboard, readiness squad view, GymAware load–velocity, Catapult ACWR.  
-Architecture: vendor APIs → bronze staging → silver views → FastAPI → React.
 
 ---
 
@@ -46,17 +51,13 @@ Architecture: vendor APIs → bronze staging → silver views → FastAPI → Re
 See **[SETUP.md](SETUP.md)**.
 
 ```bash
-# Backend (port 8000)
 cd backend && pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 
-# Frontend (port 5173)
 cd frontend && npm install && npm run dev
 ```
 
-For quick UI dev without login: `AUTH_ENABLED=false` in `backend/.env` and `VITE_AUTH_DISABLED=true` in `frontend/.env.local`.
-
-ETL: copy `etl/.env.example` → `etl/.env`, fill vendor credentials, then `python scheduled_etl.py --all` from `etl/`.
+Demo without login: `AUTH_ENABLED=false` in `backend/.env`, `VITE_AUTH_DISABLED=true` in `frontend/.env.local`.
 
 ---
 
@@ -64,13 +65,13 @@ ETL: copy `etl/.env.example` → `etl/.env`, fill vendor credentials, then `pyth
 
 | Doc | Purpose |
 |-----|---------|
-| [SETUP.md](SETUP.md) | Local dev and deploy notes |
-| [docs/CHARTS.md](docs/CHARTS.md) | Dashboard charts and API endpoints |
+| [docs/DEPLOY_DEMO.md](docs/DEPLOY_DEMO.md) | **Live demo** — Railway, Render, Docker |
+| [SETUP.md](SETUP.md) | Local development |
+| [docs/CHARTS.md](docs/CHARTS.md) | Dashboard charts and APIs |
 | [etl/docs/design/system_design.md](etl/docs/design/system_design.md) | ETL architecture |
-| [PORTFOLIO.md](PORTFOLIO.md) | Private repo setup and cleanup notes |
 
 ---
 
 ## Author
 
-**Sai Ganesh Potukuchi** — integration lead, ETL, silver schema, dashboard analytics.
+**Sai Ganesh Potukuchi** — [GitHub](https://github.com/potsy017) · integration lead, ETL, silver schema, dashboard analytics.
