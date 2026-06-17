@@ -1,5 +1,7 @@
 # Deploy WHOOP Auth Bridge on Railway
 
+> **Note:** Portfolio repo — cloud hosting is not maintained. This doc is kept as a reference for how `etl/backend/app.py` was designed to run on HTTPS.
+
 Deploy **`etl/backend/app.py`** from this repository (**VPA monorepo**).  
 The coach dashboard (`backend/` + `frontend/` at repo root) is a **separate** Railway service.
 

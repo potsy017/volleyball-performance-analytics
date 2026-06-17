@@ -56,7 +56,8 @@ Headless ETL: **Catapult**, **GymAware**, **WHOOP**, and **VALD** → **Supabase
 - **WHOOP Auth Bridge** (FastAPI): `backend/app.py` — run `uvicorn backend.app:app --reload --port 8000` from repo root after `pip install -r requirements.txt`. Apply `schema/whoop_oauth_tokens.sql` in Supabase. Set `WHOOP_*` and `DATABASE_URL` in `.env`. See `docs/volley-etl/end_to_end_workflow.md`.
 - **WHOOP ETL** (scheduled job): `whoop_etl.py` — refresh tokens and append sleep/workout/cycle/recovery into staging tables. Requires `schema/whoop_staging.sql`, `schema/medallion_raw_layer_migration.sql`, optional **`schema/whoop_bi_extract.sql`** (flat BI columns + triggers after medallion), linked rows in `whoop_oauth_token`, and the same `WHOOP_CLIENT_*` + `DATABASE_URL` as the bridge.
 - **All sources (scheduler):** `scheduled_etl.py` — runs Catapult, GymAware, VALD (profiles + optional ForceFrame + optional ForceDecks activity tables), WHOOP ETL, and Catapult load index + DB upload in one pipeline (`--all` or `--sources ...`). See `docs/operations/runbook.md` and `scripts/run_scheduled_sync.ps1`.
-- **Deploy WHOOP Auth Bridge:** [`docs/operations/deploy-railway-whoop-bridge.md`](docs/operations/deploy-railway-whoop-bridge.md) (`railway.toml`) or Render [`render.yaml`](render.yaml) + [`deploy-render-whoop-bridge.md`](docs/operations/deploy-render-whoop-bridge.md).
+- **WHOOP Auth Bridge (local):** `cd etl && uvicorn backend.app:app --reload --port 8000` — see `etl/docs/operations/runbook.md`
+- Historical cloud deploy notes (not maintained): `etl/docs/operations/deploy-railway-whoop-bridge.md`, `deploy-render-whoop-bridge.md`
 
 GymAware **allowlist** (workbook-driven athlete IDs): set `GYMAWARE_USE_ALLOWLIST=1` or use `python gymaware_export.py --allowlist`. See `docs/operations/runbook.md`.
 

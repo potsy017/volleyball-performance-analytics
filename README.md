@@ -2,24 +2,11 @@
 
 [![CI](https://github.com/potsy017/volleyball-performance-analytics/actions/workflows/ci-etl.yml/badge.svg)](https://github.com/potsy017/volleyball-performance-analytics/actions/workflows/ci-etl.yml)
 
-**Personal portfolio project** — capstone-built full-stack platform for multi-vendor athlete performance data.
+**Public portfolio (source only)** — capstone full-stack platform for multi-vendor athlete performance data.
 
-Aggregates GPS (Catapult), recovery (WHOOP), velocity-based strength (GymAware), and force plate (VALD) data through a bronze → silver ETL pipeline into Supabase, surfaced in a React coaching dashboard.
+Bronze → silver ETL (Catapult, GymAware, WHOOP, VALD) into Postgres, with a React coaching dashboard (ACWR, readiness RAG, performance radar, injury-risk triad, BMP jumps, load–velocity).
 
-> University capstone (Team 54). Demo uses anonymised/sample data — not a production client deployment.
-
----
-
-## Live demo
-
-**Deploy your own:** [docs/DEPLOY_DEMO.md](docs/DEPLOY_DEMO.md)
-
-| Platform | Action |
-|----------|--------|
-| **Render** | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/potsy017/volleyball-performance-analytics) |
-| **Railway** | Two services from this repo — `backend/` + `frontend/` ([guide](docs/DEPLOY_DEMO.md#option-a-railway-2-services)) |
-
-_Add your hosted URL here after deploy, e.g. **https://your-app.up.railway.app/dashboard**_
+> No live demo is hosted. Review the code and docs below, or run locally with your own database ([guide](docs/SHOWCASE.md)).
 
 ---
 
@@ -27,51 +14,47 @@ _Add your hosted URL here after deploy, e.g. **https://your-app.up.railway.app/d
 
 | Area | What it does |
 |------|----------------|
-| **Dashboard** | ACWR, readiness RAG, performance radar, injury-risk triad, BMP jump analytics, load–velocity profiling |
-| **ETL** | Orchestration (`scheduled_etl.py`), roster identity mapping, medallion schema |
-| **WHOOP bridge** | FastAPI OAuth service for per-athlete token linking |
-| **Stack** | FastAPI · React 18 · Vite · TanStack Query · Recharts · Supabase Postgres |
+| **Dashboard** | ACWR, readiness RAG, radar, triad risk, BMP jump analytics, load–velocity |
+| **ETL** | `scheduled_etl.py`, roster identity mapping, medallion schema |
+| **WHOOP bridge** | FastAPI OAuth app (`etl/backend/app.py`) |
+| **Stack** | FastAPI · React 18 · Vite · TanStack Query · Recharts · Postgres (Supabase-compatible) |
 
 ---
 
 ## Structure
 
 ```text
-├── backend/          # Dashboard API (FastAPI)
+├── backend/          # Dashboard API
 ├── frontend/         # React UI
-├── etl/              # ETL pipeline + WHOOP OAuth bridge
-├── docs/DEPLOY_DEMO.md
-└── render.yaml       # Optional one-click Render deploy
+├── etl/              # ETL + WHOOP bridge + schema SQL
+├── docs/CHARTS.md    # Chart ↔ API reference
+└── docs/SHOWCASE.md  # How to present this repo (no hosted demo)
 ```
 
 ---
 
-## Run locally
+## For reviewers
 
-See **[SETUP.md](SETUP.md)**.
+| Start here | Why |
+|------------|-----|
+| [docs/SHOWCASE.md](docs/SHOWCASE.md) | Portfolio intent, what to read, shutdown notes |
+| [docs/CHARTS.md](docs/CHARTS.md) | Dashboard features mapped to code |
+| [etl/docs/design/system_design.md](etl/docs/design/system_design.md) | Pipeline architecture |
+| [SETUP.md](SETUP.md) | Optional local run (Docker or dev servers) |
+
+---
+
+## Optional local run
 
 ```bash
-cd backend && pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
-
+cd backend && pip install -r requirements.txt && uvicorn app.main:app --reload --port 8000
 cd frontend && npm install && npm run dev
 ```
 
-Demo without login: `AUTH_ENABLED=false` in `backend/.env`, `VITE_AUTH_DISABLED=true` in `frontend/.env.local`.
-
----
-
-## Documentation
-
-| Doc | Purpose |
-|-----|---------|
-| [docs/DEPLOY_DEMO.md](docs/DEPLOY_DEMO.md) | **Live demo** — Railway, Render, Docker |
-| [SETUP.md](SETUP.md) | Local development |
-| [docs/CHARTS.md](docs/CHARTS.md) | Dashboard charts and APIs |
-| [etl/docs/design/system_design.md](etl/docs/design/system_design.md) | ETL architecture |
+Requires your own `.env` files and a database with silver views — see `backend/.env.example` and [SETUP.md](SETUP.md).
 
 ---
 
 ## Author
 
-**Sai Ganesh Potukuchi** — [GitHub](https://github.com/potsy017) · integration lead, ETL, silver schema, dashboard analytics.
+**Sai Ganesh Potukuchi** — [GitHub](https://github.com/potsy017)

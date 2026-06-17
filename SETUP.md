@@ -1,6 +1,6 @@
 # VPA Setup Guide
 
-This guide covers local development, Docker, and Railway deployment.
+Local development and Docker. **No cloud hosting is maintained for this portfolio repo** — see [docs/SHOWCASE.md](docs/SHOWCASE.md).
 
 ---
 
@@ -120,68 +120,7 @@ docker-compose down
 
 ---
 
-## Option C: Railway Deployment
-
-### Backend service (dashboard)
-
-1. Create a Railway service pointing to this git repo.
-2. Set the root directory to `backend` (or configure the Dockerfile path).
-3. Add these environment variables in Railway:
-
-```
-SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_SERVICE_KEY=your-service-role-key
-SUPABASE_JWT_SECRET=your-jwt-secret
-AUTH_ENABLED=true
-ALLOWED_ORIGINS=https://your-frontend.up.railway.app,http://localhost:3000,http://localhost:5173
-PORT=8080
-GMAIL_USER=your@gmail.com
-GMAIL_APP_PASSWORD=your-app-password
-ADMIN_EMAIL=admin@yourdomain.com
-ADMIN_EMAIL=admin@yourdomain.com
-```
-
-4. Deploy. The service listens on port 8080.
-
-### Frontend service
-
-1. Create a second Railway service from the same repo.
-2. Set the root directory to `vpa/frontend`.
-3. Add these environment variables:
-
-```
-VITE_API_URL=https://your-backend.up.railway.app/api
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-PORT=80
-```
-
-4. Deploy. The service serves the built React app via nginx on port 80.
-
-### WHOOP Auth Bridge service (third Railway service)
-
-1. Create a third Railway service from the same repo (or repoint the existing Beach WHOOP service).
-2. Set the **root directory** to **`etl`**.
-3. Start command: `uvicorn backend.app:app --host 0.0.0.0 --port $PORT`
-4. Environment variables: `WHOOP_CLIENT_ID`, `WHOOP_CLIENT_SECRET`, `DATABASE_URL`, `WHOOP_REDIRECT_URI` (`https://<whoop-host>/callback`).
-5. See `etl/docs/operations/deploy-railway-whoop-bridge.md` and `PORTFOLIO.md`.
-
-Nightly ETL runs via **GitHub Actions** (`.github/workflows/daily-etl.yml`), not on Railway.
-
-### Important: Supabase URL configuration
-
-After deploying to Railway, update these settings in Supabase:
-
-Go to Supabase dashboard: Authentication > URL Configuration
-
-- **Site URL:** `https://your-frontend.up.railway.app`
-- **Redirect URLs:** Add `https://your-frontend.up.railway.app/**`
-
-This ensures OTP emails and magic links redirect to your hosted app.
-
----
-
-## Supabase Setup
+## Supabase / database setup (optional)
 
 ### Required tables
 
@@ -204,7 +143,7 @@ The following silver tables must be populated by your data pipeline before the a
 
 1. In Supabase: Authentication > Providers > Email, enable "Email OTP".
 2. Disable "Confirm email" if using the two-factor OTP-after-password flow.
-3. Copy the JWT secret from Supabase: Project Settings > API > JWT Settings > JWT Secret. Add it as `SUPABASE_JWT_SECRET` in Railway backend vars.
+3. Copy the JWT secret from Supabase: Project Settings > API > JWT Settings → `SUPABASE_JWT_SECRET` in `backend/.env` when `AUTH_ENABLED=true`.
 
 ### Adding a coach user manually
 
@@ -217,20 +156,18 @@ After a user signs up (they will be `athlete` by default):
 
 ---
 
-## Verifying the Deployment
+## Verify locally
 
 ```bash
-# Health check
-curl https://your-backend.up.railway.app/api/health
+curl http://localhost:8000/api/health
 # Expected: {"status":"ok","service":"VPA API"}
 
-# Data check (should return athlete list if data exists)
-curl https://your-backend.up.railway.app/api/athletes/
+curl http://localhost:8000/api/athletes/
 ```
 
 ---
 
-## Local Development Tips
+## Local development tips
 
 - The Vite dev server auto-reloads on file changes in `frontend/src/`
 - The FastAPI backend auto-reloads on file changes when started with `--reload`

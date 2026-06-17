@@ -1,18 +1,23 @@
 # Portfolio notes
 
-Your canonical copy: **https://github.com/potsy017/volleyball-performance-analytics** (public).
+**Repo:** https://github.com/potsy017/volleyball-performance-analytics (public, source-only)
 
-## Demo deploy
+## Strategy
 
-See **[docs/DEPLOY_DEMO.md](docs/DEPLOY_DEMO.md)** — Railway (2 services) or Render blueprint.
+- **Keep:** GitHub repo as the portfolio artifact (code + docs + CI compile check).
+- **Retire:** Supabase, Render, Railway, and other hosted services.
+- **Showcase:** LinkedIn screenshots + repo link — see [docs/SHOWCASE.md](docs/SHOWCASE.md).
 
-## Security checklist (public repo)
+## Decommission checklist
 
-- [x] No `.env` or roster `.xlsx` in git
-- [ ] Rotate Supabase service role if keys were ever shared
-- [ ] Demo Supabase uses anonymised athlete data
-- [ ] `AUTH_ENABLED=false` only on demo hosts
+- [ ] Delete/pause Supabase project; rotate keys that were in local `.env`
+- [ ] Delete Render services (if any)
+- [ ] Delete Railway services (dashboard, WHOOP bridge)
+- [ ] Remove GitHub Actions secrets on any old org repos
+- [ ] Remove WHOOP redirect URIs for deleted hosts
+- [ ] Confirm no secrets in git history (`git log -p` spot-check)
 
-## Removed from client handover
+## In git
 
-Handover docs, client CI workflow, and roster workbooks were stripped before portfolio publish.
+- No `.env`, no roster `.xlsx`, no client handover docs
+- Deploy configs (`render.yaml`, `railway.toml` at repo root) removed — hosting not maintained
