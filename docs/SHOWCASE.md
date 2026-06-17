@@ -43,9 +43,10 @@ When decommissioning capstone infrastructure:
 
 | Service | Action |
 |---------|--------|
-| **Supabase** | Export schema/SQL if needed → delete or pause project → rotate any keys that were in `.env` |
-| **Render / Railway** | Delete dashboard, API, and WHOOP bridge services |
-| **GitHub Actions secrets** | Remove vendor/DB secrets if any workflows used them |
+| **Supabase** | Deleted — keys rotated / no longer valid |
+| **Render** | Deleted |
+| **GitHub Actions secrets** | Cleared |
+| **Railway** | Retained by frontend lead (not this repo owner) |
 | **WHOOP Developer app** | Remove old redirect URIs for deleted hosts |
 | **This repo** | Stays public as portfolio; no secrets in git |
 

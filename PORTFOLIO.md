@@ -10,12 +10,13 @@
 
 ## Decommission checklist
 
-- [ ] Delete/pause Supabase project; rotate keys that were in local `.env`
-- [ ] Delete Render services (if any)
-- [ ] Delete Railway services (dashboard, WHOOP bridge)
-- [ ] Remove GitHub Actions secrets on any old org repos
-- [ ] Remove WHOOP redirect URIs for deleted hosts
-- [ ] Confirm no secrets in git history (`git log -p` spot-check)
+- [x] Delete/pause Supabase project; rotate keys that were in local `.env`
+- [x] Delete Render services (if any)
+- [x] Railway — left with frontend lead (out of scope)
+- [x] Remove GitHub Actions secrets on portfolio / old repos
+- [ ] Delete local `.env` files when ready (`backend/.env`, `etl/.env`, `frontend/.env.local`)
+- [ ] Remove WHOOP redirect URIs for deleted hosts (if applicable)
+- [x] Local ETL export JSON cleared from workspace
 
 ## In git
 
