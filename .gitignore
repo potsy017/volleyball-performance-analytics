@@ -1,3 +1,6 @@
+# ── Roster workbooks (real athlete names — local only) ────────────────────────
+etl/data/roster/*.xlsx
+
 # ── ETL local exports (etl/.gitignore also applies) ───────────────────────────
 etl/**/exports/
 etl/logs/

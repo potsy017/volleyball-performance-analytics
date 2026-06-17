@@ -164,7 +164,7 @@ PORT=80
 2. Set the **root directory** to **`etl`**.
 3. Start command: `uvicorn backend.app:app --host 0.0.0.0 --port $PORT`
 4. Environment variables: `WHOOP_CLIENT_ID`, `WHOOP_CLIENT_SECRET`, `DATABASE_URL`, `WHOOP_REDIRECT_URI` (`https://<whoop-host>/callback`).
-5. See `etl/docs/operations/deploy-railway-whoop-bridge.md` and `docs/HANDOVER.md`.
+5. See `etl/docs/operations/deploy-railway-whoop-bridge.md` and `PORTFOLIO.md`.
 
 Nightly ETL runs via **GitHub Actions** (`.github/workflows/daily-etl.yml`), not on Railway.
 

@@ -6,7 +6,6 @@ on:
     paths:
       - "etl/**"
       - ".github/workflows/ci-etl.yml"
-      - ".github/workflows/daily-etl.yml"
   pull_request:
     branches: [main, master]
     paths:

@@ -1,13 +1,13 @@
 # ETL — Volleyball Data Platform (`etl/`)
 
-Part of the **VPA monorepo** (client handover repo). Headless ETL: **Catapult**, **GymAware**, **WHOOP**, and **VALD** → **Supabase** silver views.
+Headless ETL: **Catapult**, **GymAware**, **WHOOP**, and **VALD** → **Supabase** silver views.
 
 | | Path |
 |---|------|
 | This folder | `etl/` |
 | Coach dashboard | `../backend/` + `../frontend/` |
-| WHOOP bridge (Railway) | `etl/backend/app.py` — service root **`etl`** |
-| Handover | [`../docs/HANDOVER.md`](../docs/HANDOVER.md) |
+| WHOOP bridge (optional deploy) | `etl/backend/app.py` — service root **`etl`** |
+| Portfolio notes | [`../PORTFOLIO.md`](../PORTFOLIO.md) |
 
 ## Quick start
 

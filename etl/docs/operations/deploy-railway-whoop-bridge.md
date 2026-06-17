@@ -99,4 +99,4 @@ Confirm a row in Supabase `whoop_oauth_token`.
 ## Related
 
 - Render equivalent: [deploy-render-whoop-bridge.md](./deploy-render-whoop-bridge.md)
-- Handover: [README_HANDOVER.md](../../README_HANDOVER.md)
+- Related: [`../PORTFOLIO.md`](../PORTFOLIO.md)
